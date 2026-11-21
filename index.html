@@ -115,7 +115,7 @@
           </button>
           <button id="btn-open-sync" type="button" class="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-300 border border-emerald-500/30 transition">
             <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
-            <span class="hidden sm:inline">Đồng bộ YT / Spotify</span>
+            <span class="hidden sm:inline">Đồng bộ Tài khoản</span>
             <span class="sm:hidden">Đồng bộ</span>
           </button>
           <button id="btn-quick-gps" type="button" class="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/35 text-blue-300 border border-blue-500/30 transition">
@@ -246,6 +246,10 @@
                     <i data-lucide="music" class="w-3.5 h-3.5"></i>
                     <span>Spotify</span>
                   </button>
+                  <button id="dash-tab-soundcloud" type="button" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white transition">
+                    <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
+                    <span>SoundCloud</span>
+                  </button>
                 </div>
                 <button id="btn-expand-media" type="button" class="text-[11px] font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1">
                   <span>Mở rộng</span>
@@ -287,6 +291,17 @@
                   <button id="dash-sp-next" type="button" class="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold shrink-0">Đổi Playlist</button>
                 </div>
               </div>
+
+              <!-- Quick SoundCloud Mini Player -->
+              <div id="dash-soundcloud-box" class="hidden flex-1 flex flex-col gap-2 min-h-0">
+                <div class="flex-1 min-h-[180px] rounded-2xl overflow-hidden bg-[#121212] border border-white/10">
+                  <iframe id="dash-sc-iframe" class="w-full h-full min-h-[180px]" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=https%3A%2F%2Fsoundcloud.com%2Fprod-min-official%2Fsets%2Fchill-with-min&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true"></iframe>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <div id="dash-sc-title" class="text-xs font-semibold text-orange-300 truncate">Lofi chill — SoundCloud</div>
+                  <button id="dash-sc-next" type="button" class="px-2.5 py-1 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-[11px] font-semibold shrink-0">Đổi bài</button>
+                </div>
+              </div>
             </div>
 
             <!-- Dynamic Secondary Widget Cards -->
@@ -308,7 +323,7 @@
         <div>
           <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
             <i data-lucide="key-round" class="w-5 h-5 text-emerald-400"></i>
-            <span>Đăng nhập YouTube &amp; Spotify (OAuth 2.0 Client ID)</span>
+            <span>Đăng nhập YouTube, Spotify &amp; SoundCloud (OAuth 2.0)</span>
           </h2>
           <p class="text-xs text-slate-400 mt-0.5">Nhập Client ID để tự động tải toàn bộ Playlist &amp; Video/Bài hát đã thích từ tài khoản cá nhân của bạn.</p>
         </div>
@@ -381,6 +396,31 @@
           <form id="form-sync-sp-playlist" class="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1 border-t border-white/5">
             <input id="input-sync-sp-name" type="text" placeholder="Tên Playlist (tùy chọn)" class="sm:col-span-4 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-400" />
             <input id="input-sync-sp-pl" type="text" required placeholder="Hoặc dán nhanh link Playlist / Track / Album Spotify" class="sm:col-span-6 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-400" />
+            <button type="submit" class="sm:col-span-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold">Lưu</button>
+          </form>
+        </div>
+
+        <!-- SoundCloud OAuth 2.1 PKCE Card -->
+        <div class="bg-[#0b0f18] border border-orange-500/30 rounded-2xl p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <span class="w-9 h-9 rounded-xl bg-orange-600 text-white flex items-center justify-center"><i data-lucide="cloud" class="w-5 h-5"></i></span>
+              <div>
+                <div class="text-sm font-bold text-white">SoundCloud — OAuth 2.1 PKCE</div>
+                <div id="sync-sc-status" class="text-xs text-slate-400">Chưa đăng nhập OAuth • Hỗ trợ Playlist &amp; Bài hát đã thích</div>
+              </div>
+            </div>
+            <button id="btn-sc-logout" type="button" class="hidden px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold">Đăng xuất</button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <input id="input-soundcloud-client-id" type="text" placeholder="Dán SoundCloud App Client ID (soundcloud.com/you/apps)" class="sm:col-span-8 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-400" />
+            <button id="btn-sc-oauth" type="button" class="sm:col-span-4 px-3 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold transition">Đăng nhập SoundCloud</button>
+          </div>
+
+          <form id="form-sync-sc-url" class="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1 border-t border-white/5">
+            <input id="input-sync-sc-name" type="text" placeholder="Tên bài / Playlist" class="sm:col-span-4 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-400" />
+            <input id="input-sync-sc-url" type="text" required placeholder="Hoặc dán link bài hát / playlist SoundCloud" class="sm:col-span-6 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-400" />
             <button type="submit" class="sm:col-span-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold">Lưu</button>
           </form>
         </div>
@@ -551,10 +591,17 @@
         { type: 'playlist', id: '1S0icXSTkydc4LQy3U5o0y', title: 'Lo-Fi Lounge', subtitle: 'Driving Mix' }
       ];
 
+      const DEFAULT_SOUNDCLOUD_LIST = [
+        { url: 'https://soundcloud.com/prod-min-official/sets/chill-with-min', title: 'Lofi Chill Playlist', artist: 'Min Official' },
+        { url: 'https://soundcloud.com/prodvdr/night-drive-lofi', title: 'Night Drive - LoFi', artist: 'VDR' },
+        { url: 'https://soundcloud.com/prodacey/lofi', title: 'Lofi Driving Beats', artist: 'Acey' }
+      ];
+
       const DEFAULT_FEATURES = [
         { id: 'maps', name: 'Google Maps', desc: 'Bản đồ Google & chỉ đường toàn cầu', icon: 'map-pin', color: 'from-blue-500 to-emerald-500', enabled: true, builtin: true },
         { id: 'youtube', name: 'YouTube No-Ads', desc: 'Phát YouTube không quảng cáo & đồng bộ', icon: 'play-circle', color: 'from-red-500 to-rose-600', enabled: true, builtin: true },
         { id: 'spotify', name: 'Spotify', desc: 'Nghe nhạc & đồng bộ tài khoản Spotify', icon: 'music', color: 'from-emerald-500 to-green-600', enabled: true, builtin: true },
+        { id: 'soundcloud', name: 'SoundCloud', desc: 'Phát nhạc, tìm kiếm & đăng nhập SoundCloud', icon: 'cloud', color: 'from-orange-500 to-amber-600', enabled: true, builtin: true },
         { id: 'phone', name: 'Điện thoại', desc: 'Chỉ gọi khi kết nối Bluetooth / Phone Link', icon: 'phone', color: 'from-green-500 to-teal-600', enabled: true, builtin: true },
         { id: 'weather', name: 'Thời tiết', desc: 'Thời tiết trực tiếp theo vị trí GPS', icon: 'cloud-sun', color: 'from-sky-500 to-blue-600', enabled: true, builtin: true },
         { id: 'carstats', name: 'Thông số xe', desc: 'Tốc độ GPS, điều hòa & chế độ lái', icon: 'gauge', color: 'from-amber-500 to-orange-600', enabled: true, builtin: true },
@@ -612,11 +659,14 @@
         auth: {
           googleClientId: '',
           spotifyClientId: '',
+          soundcloudClientId: '',
           ytUser: null,
           ytToken: null,
           ytUseAccountEmbed: false,
           spUser: null,
-          spToken: null
+          spToken: null,
+          scUser: null,
+          scToken: null
         },
         phoneConn: {
           connected: false,
@@ -630,6 +680,18 @@
         youtubeIndex: 0,
         spotifyList: JSON.parse(JSON.stringify(DEFAULT_SPOTIFY_LIST)),
         spotifyIndex: 0,
+        soundcloudList: JSON.parse(JSON.stringify(DEFAULT_SOUNDCLOUD_LIST)),
+        soundcloudIndex: 0,
+        ytSearchResults: [],
+        ytSearchQuery: '',
+        ytSearching: false,
+        spSearchResults: [],
+        spSearchQuery: '',
+        spSearching: false,
+        spPreviewAudioUrl: null,
+        scSearchResults: [],
+        scSearchQuery: '',
+        scSearching: false,
         synthPlaying: false,
         weather: { temp: 30, wind: 11, code: 1, desc: 'Ít mây, nắng nhẹ', loaded: false },
         car: { acLeft: 22, acRight: 23, driveMode: 'Normal', tripKm: 14.8, batteryPct: 84 },
@@ -642,15 +704,23 @@
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const p = JSON.parse(saved);
-          if (Array.isArray(p.features) && p.features.length > 0) state.features = p.features;
+          if (Array.isArray(p.features) && p.features.length > 0) {
+            state.features = p.features;
+            if (!state.features.some((f) => f.id === 'soundcloud')) {
+              state.features.splice(3, 0, JSON.parse(JSON.stringify(DEFAULT_FEATURES.find((f) => f.id === 'soundcloud'))));
+            }
+          }
           if (Array.isArray(p.youtubeList) && p.youtubeList.length > 0) state.youtubeList = p.youtubeList;
           if (Array.isArray(p.spotifyList) && p.spotifyList.length > 0) state.spotifyList = p.spotifyList;
+          if (Array.isArray(p.soundcloudList) && p.soundcloudList.length > 0) state.soundcloudList = p.soundcloudList;
           if (Array.isArray(p.savedPlaces)) state.savedPlaces = p.savedPlaces;
           if (p.auth) {
             state.auth.googleClientId = p.auth.googleClientId || '';
             state.auth.spotifyClientId = p.auth.spotifyClientId || '';
+            state.auth.soundcloudClientId = p.auth.soundcloudClientId || '';
             state.auth.ytUser = p.auth.ytUser || null;
             state.auth.spUser = p.auth.spUser || null;
+            state.auth.scUser = p.auth.scUser || null;
             state.auth.ytUseAccountEmbed = !!p.auth.ytUseAccountEmbed;
           }
         }
@@ -662,12 +732,15 @@
             features: state.features,
             youtubeList: state.youtubeList,
             spotifyList: state.spotifyList,
+            soundcloudList: state.soundcloudList,
             savedPlaces: state.savedPlaces,
             auth: {
               googleClientId: state.auth.googleClientId,
               spotifyClientId: state.auth.spotifyClientId,
+              soundcloudClientId: state.auth.soundcloudClientId,
               ytUser: state.auth.ytUser,
               spUser: state.auth.spUser,
+              scUser: state.auth.scUser,
               ytUseAccountEmbed: state.auth.ytUseAccountEmbed
             }
           }));
@@ -1149,6 +1222,8 @@
         document.getElementById('modal-sync').classList.remove('hidden');
         document.getElementById('input-google-client-id').value = state.auth.googleClientId || '';
         document.getElementById('input-spotify-client-id').value = state.auth.spotifyClientId || '';
+        const scCidEl = document.getElementById('input-soundcloud-client-id');
+        if (scCidEl) scCidEl.value = state.auth.soundcloudClientId || '';
         const uriEl = document.getElementById('oauth-redirect-uri');
         if (uriEl) uriEl.textContent = getCurrentRedirectUri();
         updateSyncStatusUI();
@@ -1182,6 +1257,19 @@
           spStatus.textContent = 'Chưa đăng nhập OAuth • Hỗ trợ dán Playlist/Album cá nhân';
           spStatus.className = 'text-xs text-slate-400';
           spLogout.classList.add('hidden');
+        }
+        const scStatus = document.getElementById('sync-sc-status');
+        const scLogout = document.getElementById('btn-sc-logout');
+        if (scStatus && scLogout) {
+          if (state.auth.scUser) {
+            scStatus.textContent = `Đã đồng bộ: ${state.auth.scUser}`;
+            scStatus.className = 'text-xs text-emerald-400 font-semibold';
+            scLogout.classList.remove('hidden');
+          } else {
+            scStatus.textContent = 'Chưa đăng nhập OAuth • Hỗ trợ Playlist & Bài hát đã thích';
+            scStatus.className = 'text-xs text-slate-400';
+            scLogout.classList.add('hidden');
+          }
         }
         const ytModeBtn = document.getElementById('btn-yt-toggle-mode');
         if (ytModeBtn) {
@@ -1277,6 +1365,38 @@
                 if (tok.access_token) {
                   state.auth.spToken = tok.access_token;
                   await syncSpotifyAccountData(tok.access_token);
+                }
+              }
+            } catch (e) {}
+          }
+        }
+
+        // 3. Check SoundCloud OAuth PKCE code
+        if (searchParams.get('state') === 'sc_oauth' && searchParams.get('code') && state.auth.soundcloudClientId) {
+          const code = searchParams.get('code');
+          let verifier = '';
+          try { verifier = sessionStorage.getItem('sc_pkce_verifier') || ''; } catch (e) {}
+          try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
+          if (verifier) {
+            try {
+              const redirectUri = window.location.origin + window.location.pathname;
+              const body = new URLSearchParams({
+                client_id: state.auth.soundcloudClientId,
+                grant_type: 'authorization_code',
+                code,
+                redirect_uri: redirectUri,
+                code_verifier: verifier
+              });
+              const res = await fetch('https://secure.soundcloud.com/oauth/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body
+              });
+              if (res.ok) {
+                const tok = await res.json();
+                if (tok.access_token) {
+                  state.auth.scToken = tok.access_token;
+                  await syncSoundCloudAccountData(tok.access_token);
                 }
               }
             } catch (e) {}
@@ -1384,12 +1504,286 @@
             state.spotifyIndex = 0;
             saveState();
             updateDashSpotify();
+        updateDashSoundCloud();
             showToast(`Đã đồng bộ ${personal.length} playlist & bài hát Spotify cá nhân!`, 'success');
           }
           updateSyncStatusUI();
         } catch (e) {
           showToast('Không thể tải playlist từ tài khoản Spotify.', 'error');
         }
+      }
+
+      async function startSoundCloudOAuth() {
+        const cid = document.getElementById('input-soundcloud-client-id').value.trim();
+        if (!cid) {
+          showToast('Hãy nhập SoundCloud App Client ID (hoặc dán link SoundCloud bên dưới).', 'warn');
+          return;
+        }
+        state.auth.soundcloudClientId = cid;
+        saveState();
+        const redirectUri = window.location.origin + window.location.pathname;
+        if (!redirectUri.startsWith('http')) {
+          showToast('Đăng nhập OAuth SoundCloud cần chạy trên http://127.0.0.1 hoặc tên miền HTTPS riêng.', 'warn');
+          return;
+        }
+        try {
+          const { verifier, challenge } = await generatePKCE();
+          try { sessionStorage.setItem('sc_pkce_verifier', verifier); } catch (e) {}
+          const url = `https://secure.soundcloud.com/authorize?client_id=${encodeURIComponent(cid)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&code_challenge=${encodeURIComponent(challenge)}&code_challenge_method=S256&state=sc_oauth`;
+          window.location.href = url;
+        } catch (e) {
+          showToast('Không thể khởi tạo PKCE SoundCloud.', 'error');
+        }
+      }
+
+      async function syncSoundCloudAccountData(token) {
+        try {
+          const meRes = await fetch('https://api.soundcloud.com/me', {
+            headers: { Authorization: `OAuth ${token}` }
+          });
+          if (meRes.ok) {
+            const me = await meRes.json();
+            state.auth.scUser = me.username || me.full_name || 'SoundCloud User';
+          }
+          const personal = [];
+          const likesRes = await fetch('https://api.soundcloud.com/me/likes/tracks?limit=15', {
+            headers: { Authorization: `OAuth ${token}` }
+          });
+          if (likesRes.ok) {
+            const likes = await likesRes.json();
+            if (Array.isArray(likes)) {
+              likes.forEach((t) => {
+                if (t.permalink_url) {
+                  personal.push({
+                    url: t.permalink_url,
+                    title: `[Đã thích] ${t.title || 'SoundCloud Track'}`,
+                    artist: t.user ? t.user.username : 'SoundCloud'
+                  });
+                }
+              });
+            }
+          }
+          if (personal.length > 0) {
+            state.soundcloudList = [...personal, ...state.soundcloudList.filter((x) => !x.title.startsWith('[Đã thích]'))];
+            state.soundcloudIndex = 0;
+            saveState();
+            updateDashSoundCloud();
+            showToast(`Đã đồng bộ ${personal.length} bài hát SoundCloud cá nhân!`, 'success');
+          }
+          updateSyncStatusUI();
+        } catch (e) {
+          showToast('Không thể tải dữ liệu từ tài khoản SoundCloud.', 'error');
+        }
+      }
+
+      // Direct Search: YouTube (Official API v3 with OAuth token, fallback to Piped API, fallback to YouTube Search Embed)
+      async function searchYouTubeDirect(query) {
+        const q = (query || '').trim();
+        if (!q) return;
+        // If user pasted a direct link, play it directly
+        const directRes = extractYouTubeResource(q);
+        if (directRes) {
+          state.youtubeList.unshift({
+            type: directRes.type, id: directRes.id,
+            title: directRes.type === 'playlist' ? `Playlist YouTube (${directRes.id.slice(0, 8)}...)` : `Video YouTube (${directRes.id})`,
+            channel: 'Link trực tiếp'
+          });
+          state.youtubeIndex = 0;
+          saveState(); updateDashYouTube(); renderActiveAppView();
+          showToast('Đang phát link YouTube!', 'success');
+          return;
+        }
+
+        state.ytSearchQuery = q;
+        state.ytSearching = true;
+        state.ytSearchResults = [];
+        if (state.activeView === 'youtube') renderActiveAppView();
+
+        let results = [];
+        // 1. Official YouTube Data API v3 when signed in via OAuth
+        if (state.auth.ytToken) {
+          try {
+            const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=8&q=${encodeURIComponent(q)}`, {
+              headers: { Authorization: `Bearer ${state.auth.ytToken}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.items) {
+                results = data.items.filter((i) => i.id && i.id.videoId).map((i) => ({
+                  id: i.id.videoId,
+                  title: i.snippet.title,
+                  channel: i.snippet.channelTitle,
+                  thumb: i.snippet.thumbnails?.medium?.url || ''
+                }));
+              }
+            }
+          } catch (e) {}
+        }
+
+        // 2. Fallback: Public Piped API search (no login needed)
+        if (results.length === 0) {
+          const pipedHosts = ['https://pipedapi.kavin.rocks', 'https://pipedapi.adminforge.de'];
+          for (const host of pipedHosts) {
+            try {
+              const res = await fetch(`${host}/search?q=${encodeURIComponent(q)}&filter=videos`);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.items) && data.items.length > 0) {
+                  results = data.items.filter((it) => it.url && it.url.includes('v=')).slice(0, 8).map((it) => {
+                    const vid = it.url.split('v=')[1].split('&')[0];
+                    return { id: vid, title: it.title || 'YouTube Video', channel: it.uploaderName || 'YouTube', thumb: it.thumbnail || '' };
+                  });
+                  if (results.length > 0) break;
+                }
+              }
+            } catch (e) {}
+          }
+        }
+
+        state.ytSearching = false;
+        state.ytSearchResults = results;
+
+        // 3. Ultimate fallback: play YouTube Search Embed directly if all search APIs are unreachable
+        if (results.length === 0) {
+          state.youtubeList.unshift({ type: 'search', id: q, title: `Kết quả tìm: "${q}"`, channel: 'YouTube Search' });
+          state.youtubeIndex = 0;
+          updateDashYouTube();
+          showToast(`Đang phát trực tiếp kết quả tìm "${q}" (đăng nhập YouTube OAuth để hiện danh sách chọn chi tiết).`, 'info');
+        } else {
+          showToast(`Tìm thấy ${results.length} video YouTube cho "${q}".`, 'success');
+        }
+        if (state.activeView === 'youtube') renderActiveAppView();
+      }
+
+      // Direct Search: Spotify (Official Web API with OAuth token, fallback to iTunes public catalog preview)
+      async function searchSpotifyDirect(query) {
+        const q = (query || '').trim();
+        if (!q) return;
+        const directRes = extractSpotifyResource(q);
+        if (directRes) {
+          state.spotifyList.unshift({ type: directRes.type, id: directRes.id, title: `Spotify ${directRes.type}`, subtitle: 'Link trực tiếp' });
+          state.spotifyIndex = 0;
+          saveState(); updateDashSpotify(); renderActiveAppView();
+          showToast('Đã mở link Spotify!', 'success');
+          return;
+        }
+
+        state.spSearchQuery = q;
+        state.spSearching = true;
+        state.spSearchResults = [];
+        if (state.activeView === 'spotify') renderActiveAppView();
+
+        let results = [];
+        // 1. Official Spotify Web API Search when signed in
+        if (state.auth.spToken) {
+          try {
+            const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track,playlist&limit=8`, {
+              headers: { Authorization: `Bearer ${state.auth.spToken}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.tracks && data.tracks.items) {
+                data.tracks.items.forEach((t) => results.push({
+                  source: 'spotify',
+                  type: 'track',
+                  id: t.id,
+                  title: t.name,
+                  artist: (t.artists || []).map((a) => a.name).join(', '),
+                  thumb: t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || ''
+                }));
+              }
+              if (data.playlists && data.playlists.items) {
+                data.playlists.items.slice(0, 3).forEach((p) => {
+                  if (p && p.id) results.push({
+                    source: 'spotify',
+                    type: 'playlist',
+                    id: p.id,
+                    title: `[Playlist] ${p.name}`,
+                    artist: p.owner?.display_name || 'Spotify',
+                    thumb: p.images?.[0]?.url || ''
+                  });
+                });
+              }
+            }
+          } catch (e) {}
+        }
+
+        // 2. Fallback: Public iTunes Search API (instant search + 30s audio preview without needing Spotify login)
+        if (results.length === 0) {
+          try {
+            const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=8`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data && Array.isArray(data.results)) {
+                results = data.results.map((t) => ({
+                  source: 'preview',
+                  type: 'track',
+                  id: String(t.trackId),
+                  title: t.trackName || q,
+                  artist: t.artistName || 'Nghệ sĩ',
+                  thumb: t.artworkUrl60 || '',
+                  previewUrl: t.previewUrl || ''
+                }));
+              }
+            }
+          } catch (e) {}
+        }
+
+        state.spSearching = false;
+        state.spSearchResults = results;
+        if (results.length > 0) {
+          showToast(state.auth.spToken ? `Tìm thấy ${results.length} bài hát/playlist trên Spotify!` : `Tìm thấy ${results.length} bài hát (nghe thử ngay hoặc đăng nhập Spotify OAuth để phát full).`, 'success');
+        } else {
+          showToast(`Không tìm thấy kết quả cho "${q}".`, 'warn');
+        }
+        if (state.activeView === 'spotify') renderActiveAppView();
+      }
+
+      // Direct Search: SoundCloud (Official API with OAuth token, or direct URL / search handoff)
+      async function searchSoundCloudDirect(query) {
+        const q = (query || '').trim();
+        if (!q) return;
+        if (q.includes('soundcloud.com/')) {
+          state.soundcloudList.unshift({ url: q, title: 'Track / Playlist SoundCloud', artist: 'Link trực tiếp' });
+          state.soundcloudIndex = 0;
+          saveState(); updateDashSoundCloud(); renderActiveAppView();
+          showToast('Đang phát SoundCloud!', 'success');
+          return;
+        }
+
+        state.scSearchQuery = q;
+        state.scSearching = true;
+        state.scSearchResults = [];
+        if (state.activeView === 'soundcloud') renderActiveAppView();
+
+        let results = [];
+        if (state.auth.scToken) {
+          try {
+            const res = await fetch(`https://api.soundcloud.com/tracks?q=${encodeURIComponent(q)}&limit=8`, {
+              headers: { Authorization: `OAuth ${state.auth.scToken}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (Array.isArray(data)) {
+                results = data.filter((t) => t.permalink_url).map((t) => ({
+                  url: t.permalink_url,
+                  title: t.title || 'SoundCloud Track',
+                  artist: t.user ? t.user.username : 'SoundCloud',
+                  thumb: t.artwork_url || ''
+                }));
+              }
+            }
+          } catch (e) {}
+        }
+
+        state.scSearching = false;
+        state.scSearchResults = results;
+        if (results.length === 0) {
+          showToast('Đăng nhập SoundCloud OAuth để tìm trực tiếp trong app, hoặc bấm nút mở tìm kiếm SoundCloud bên dưới.', 'info');
+        } else {
+          showToast(`Tìm thấy ${results.length} bài trên SoundCloud!`, 'success');
+        }
+        if (state.activeView === 'soundcloud') renderActiveAppView();
       }
 
       // =========================================================
@@ -1606,6 +2000,9 @@
       function getYouTubeEmbedUrl(item, autoplay = false) {
         const host = state.auth.ytUseAccountEmbed ? 'https://www.youtube.com' : 'https://www.youtube-nocookie.com';
         const auto = autoplay ? '&autoplay=1' : '';
+        if (item.type === 'search') {
+          return `${host}/embed?listType=search&list=${encodeURIComponent(item.id)}&rel=0&modestbranding=1${auto}`;
+        }
         if (item.type === 'playlist') {
           return `${host}/embed/videoseries?list=${encodeURIComponent(item.id)}&rel=0&modestbranding=1${auto}`;
         }
@@ -1632,23 +2029,37 @@
         if (titleEl) titleEl.textContent = `${sp.title} — ${sp.subtitle}`;
       }
 
+      function getSoundCloudEmbedUrl(scUrl, autoPlay = false) {
+        return `https://w.soundcloud.com/player/?url=${encodeURIComponent(scUrl)}&color=%23ff5500&auto_play=${autoPlay ? 'true' : 'false'}&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true`;
+      }
+
+      function updateDashSoundCloud() {
+        const sc = state.soundcloudList[state.soundcloudIndex] || state.soundcloudList[0];
+        if (!sc) return;
+        const iframe = document.getElementById('dash-sc-iframe');
+        const targetSrc = getSoundCloudEmbedUrl(sc.url, false);
+        if (iframe && iframe.src !== targetSrc) iframe.src = targetSrc;
+        const titleEl = document.getElementById('dash-sc-title');
+        if (titleEl) titleEl.textContent = `${sc.title} — ${sc.artist}`;
+      }
+
       function setDashMediaTab(tab) {
         state.dashMediaTab = tab;
-        const ytTab = document.getElementById('dash-tab-youtube');
-        const spTab = document.getElementById('dash-tab-spotify');
-        const ytBox = document.getElementById('dash-youtube-box');
-        const spBox = document.getElementById('dash-spotify-box');
-        if (tab === 'youtube') {
-          ytTab.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-red-600 text-white transition';
-          spTab.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white transition';
-          ytBox.classList.remove('hidden');
-          spBox.classList.add('hidden');
-        } else {
-          spTab.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 text-white transition';
-          ytTab.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white transition';
-          spBox.classList.remove('hidden');
-          ytBox.classList.add('hidden');
-        }
+        const tabs = {
+          youtube: { btn: document.getElementById('dash-tab-youtube'), box: document.getElementById('dash-youtube-box'), active: 'bg-red-600 text-white' },
+          spotify: { btn: document.getElementById('dash-tab-spotify'), box: document.getElementById('dash-spotify-box'), active: 'bg-emerald-600 text-white' },
+          soundcloud: { btn: document.getElementById('dash-tab-soundcloud'), box: document.getElementById('dash-soundcloud-box'), active: 'bg-orange-600 text-white' }
+        };
+        Object.entries(tabs).forEach(([key, cfg]) => {
+          if (!cfg.btn || !cfg.box) return;
+          if (key === tab) {
+            cfg.btn.className = `px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${cfg.active} transition`;
+            cfg.box.classList.remove('hidden');
+          } else {
+            cfg.btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white transition';
+            cfg.box.classList.add('hidden');
+          }
+        });
       }
 
       function ensureAudioCtx() {
@@ -1752,15 +2163,17 @@
         const mediaCard = document.getElementById('dash-media-card');
         const ytEnabled = state.features.some((f) => f.id === 'youtube' && f.enabled);
         const spEnabled = state.features.some((f) => f.id === 'spotify' && f.enabled);
+        const scEnabled = state.features.some((f) => f.id === 'soundcloud' && f.enabled);
 
-        if (!ytEnabled && !spEnabled) {
+        if (!ytEnabled && !spEnabled && !scEnabled) {
           mediaCard.classList.add('hidden');
         } else {
           mediaCard.classList.remove('hidden');
           document.getElementById('dash-tab-youtube').classList.toggle('hidden', !ytEnabled);
           document.getElementById('dash-tab-spotify').classList.toggle('hidden', !spEnabled);
-          if (state.dashMediaTab === 'youtube' && !ytEnabled && spEnabled) setDashMediaTab('spotify');
-          if (state.dashMediaTab === 'spotify' && !spEnabled && ytEnabled) setDashMediaTab('youtube');
+          document.getElementById('dash-tab-soundcloud').classList.toggle('hidden', !scEnabled);
+          const avail = [ytEnabled && 'youtube', spEnabled && 'spotify', scEnabled && 'soundcloud'].filter(Boolean);
+          if (!avail.includes(state.dashMediaTab) && avail.length > 0) setDashMediaTab(avail[0]);
         }
 
         const enabledIds = new Set(getEnabledFeatures().map((f) => f.id));
@@ -1934,9 +2347,29 @@
             </div>
 
             <form id="yt-add-form" class="flex gap-2">
-              <input id="yt-url-input" type="text" placeholder="Dán link Video hoặc Playlist YouTube cá nhân (?list=...)..." class="flex-1 bg-[#0b0f18] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" />
-              <button type="submit" class="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shrink-0">Phát ngay</button>
+              <input id="yt-url-input" type="text" value="${escapeHtml(state.ytSearchQuery)}" placeholder="Tìm trực tiếp video, bài hát, ca sĩ trên YouTube (không cần link)..." class="flex-1 bg-[#0b0f18] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" />
+              <button type="submit" class="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shrink-0 flex items-center gap-1">
+                <i data-lucide="search" class="w-3.5 h-3.5"></i><span>${state.ytSearching ? 'Đang tìm...' : 'Tìm kiếm'}</span>
+              </button>
             </form>
+            ${state.ytSearchResults.length > 0 ? `
+              <div class="bg-[#0b0f18] border border-red-500/25 rounded-2xl p-2.5 space-y-1.5 max-h-52 overflow-y-auto">
+                <div class="flex items-center justify-between px-1">
+                  <span class="text-[11px] font-bold text-red-300 uppercase">Kết quả tìm kiếm YouTube (${state.ytSearchResults.length})</span>
+                  <button id="yt-clear-search" type="button" class="text-[11px] text-slate-400 hover:text-white">Đóng</button>
+                </div>
+                ${state.ytSearchResults.map((r, i) => `
+                  <button type="button" data-yt-res="${i}" class="w-full flex items-center gap-2.5 p-2 rounded-xl bg-[#141c2c]/80 hover:bg-red-600/25 text-left transition">
+                    ${r.thumb ? `<img src="${escapeHtml(r.thumb)}" alt="" class="w-16 h-10 rounded-lg object-cover shrink-0 bg-black" />` : ''}
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs font-bold text-white line-clamp-1">${escapeHtml(r.title)}</div>
+                      <div class="text-[11px] text-slate-400 truncate">${escapeHtml(r.channel)}</div>
+                    </div>
+                    <span class="px-2 py-1 rounded-lg bg-red-600 text-white text-[10px] font-bold shrink-0">Phát</span>
+                  </button>
+                `).join('')}
+              </div>
+            ` : ''}
 
             <div class="w-full aspect-video rounded-2xl overflow-hidden bg-black border border-white/10 shrink-0">
               <iframe class="w-full h-full" src="${escapeHtml(getYouTubeEmbedUrl(cur, true))}" title="${escapeHtml(cur.title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
@@ -1965,23 +2398,19 @@
           document.getElementById('yt-sync-btn').addEventListener('click', openSyncModal);
           document.getElementById('yt-add-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const res = extractYouTubeResource(document.getElementById('yt-url-input').value);
-            if (!res) {
-              showToast('Link YouTube chưa hợp lệ. Hãy dán link video hoặc playlist (?list=...).', 'error');
-              return;
-            }
-            state.youtubeList.unshift({
-              type: res.type,
-              id: res.id,
-              title: res.type === 'playlist' ? `[Cá nhân] Playlist YouTube (${res.id.slice(0, 8)}...)` : `Video YouTube (${res.id})`,
-              channel: 'Đã thêm bởi bạn'
-            });
-            state.youtubeIndex = 0;
-            saveState();
-            updateDashYouTube();
-            renderActiveAppView();
-            showToast('Đang phát nội dung YouTube không quảng cáo!', 'success');
+            searchYouTubeDirect(document.getElementById('yt-url-input').value);
           });
+          const ytClr = document.getElementById('yt-clear-search');
+          if (ytClr) ytClr.addEventListener('click', () => { state.ytSearchResults = []; renderActiveAppView(); });
+          container.querySelectorAll('[data-yt-res]').forEach((b) => b.addEventListener('click', () => {
+            const item = state.ytSearchResults[Number(b.dataset.ytRes)];
+            if (!item) return;
+            state.youtubeList.unshift({ type: 'video', id: item.id, title: item.title, channel: item.channel });
+            state.youtubeIndex = 0;
+            state.ytSearchResults = [];
+            saveState(); updateDashYouTube(); renderActiveAppView();
+            showToast(`Đang phát: ${item.title}`, 'success');
+          }));
           container.querySelectorAll('[data-yt-play]').forEach((b) => b.addEventListener('click', () => {
             state.youtubeIndex = Number(b.dataset.ytPlay);
             updateDashYouTube();
@@ -2016,9 +2445,35 @@
             </div>
 
             <form id="sp-add-form" class="flex gap-2">
-              <input id="sp-url-input" type="text" placeholder="Dán link Spotify cá nhân (playlist / track / album / artist)..." class="flex-1 bg-[#0b0f18] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500" />
-              <button type="submit" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shrink-0">Tải nhạc</button>
+              <input id="sp-url-input" type="text" value="${escapeHtml(state.spSearchQuery)}" placeholder="Tìm trực tiếp tên bài hát, ca sĩ, playlist trên Spotify (không cần link)..." class="flex-1 bg-[#0b0f18] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500" />
+              <button type="submit" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shrink-0 flex items-center gap-1">
+                <i data-lucide="search" class="w-3.5 h-3.5"></i><span>${state.spSearching ? 'Đang tìm...' : 'Tìm bài hát'}</span>
+              </button>
             </form>
+            ${state.spPreviewAudioUrl ? `
+              <div class="bg-emerald-950/40 border border-emerald-500/35 rounded-xl p-2 flex items-center gap-2">
+                <audio controls autoplay src="${escapeHtml(state.spPreviewAudioUrl)}" class="w-full h-8"></audio>
+                <button id="sp-close-preview" type="button" class="text-xs text-slate-300 hover:text-white px-2">×</button>
+              </div>
+            ` : ''}
+            ${state.spSearchResults.length > 0 ? `
+              <div class="bg-[#0b0f18] border border-emerald-500/25 rounded-2xl p-2.5 space-y-1.5 max-h-52 overflow-y-auto">
+                <div class="flex items-center justify-between px-1">
+                  <span class="text-[11px] font-bold text-emerald-300 uppercase">Kết quả tìm bài hát (${state.spSearchResults.length})</span>
+                  <button id="sp-clear-search" type="button" class="text-[11px] text-slate-400 hover:text-white">Đóng</button>
+                </div>
+                ${state.spSearchResults.map((r, i) => `
+                  <button type="button" data-sp-res="${i}" class="w-full flex items-center gap-2.5 p-2 rounded-xl bg-[#141c2c]/80 hover:bg-emerald-600/25 text-left transition">
+                    ${r.thumb ? `<img src="${escapeHtml(r.thumb)}" alt="" class="w-10 h-10 rounded-lg object-cover shrink-0 bg-black" />` : ''}
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs font-bold text-white truncate">${escapeHtml(r.title)}</div>
+                      <div class="text-[11px] text-slate-400 truncate">${escapeHtml(r.artist)}</div>
+                    </div>
+                    <span class="px-2 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-bold shrink-0">${r.source === 'spotify' ? 'Phát Spotify' : 'Nghe thử'}</span>
+                  </button>
+                `).join('')}
+              </div>
+            ` : ''}
 
             <div class="w-full h-[230px] rounded-2xl overflow-hidden bg-[#121212] border border-white/10 shrink-0">
               <iframe class="w-full h-full" src="https://open.spotify.com/embed/${escapeHtml(cur.type)}/${escapeHtml(cur.id)}?utm_source=generator&theme=0" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
@@ -2059,22 +2514,122 @@
           document.getElementById('sp-synth-toggle').addEventListener('click', toggleChillSynth);
           document.getElementById('sp-add-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const parsed = extractSpotifyResource(document.getElementById('sp-url-input').value);
-            if (!parsed) {
-              showToast('Link Spotify chưa đúng định dạng (open.spotify.com/playlist/... hoặc track/...).', 'error');
-              return;
-            }
-            state.spotifyList.unshift({ type: parsed.type, id: parsed.id, title: `[Cá nhân] Spotify ${parsed.type}`, subtitle: 'Đã thêm bởi bạn' });
-            state.spotifyIndex = 0;
-            saveState();
-            updateDashSpotify();
-            renderActiveAppView();
-            showToast('Đã tải nhạc Spotify cá nhân thành công!', 'success');
+            searchSpotifyDirect(document.getElementById('sp-url-input').value);
           });
+          const spClr = document.getElementById('sp-clear-search');
+          if (spClr) spClr.addEventListener('click', () => { state.spSearchResults = []; renderActiveAppView(); });
+          const spPrevClose = document.getElementById('sp-close-preview');
+          if (spPrevClose) spPrevClose.addEventListener('click', () => { state.spPreviewAudioUrl = null; renderActiveAppView(); });
+          container.querySelectorAll('[data-sp-res]').forEach((b) => b.addEventListener('click', () => {
+            const item = state.spSearchResults[Number(b.dataset.spRes)];
+            if (!item) return;
+            if (item.source === 'spotify') {
+              state.spotifyList.unshift({ type: item.type, id: item.id, title: item.title, subtitle: item.artist });
+              state.spotifyIndex = 0;
+              state.spSearchResults = [];
+              saveState(); updateDashSpotify(); renderActiveAppView();
+              showToast(`Đang phát trên Spotify: ${item.title}`, 'success');
+            } else if (item.previewUrl) {
+              state.spPreviewAudioUrl = item.previewUrl;
+              renderActiveAppView();
+              showToast(`Đang nghe thử: ${item.title} — ${item.artist}`, 'info');
+            }
+          }));
           container.querySelectorAll('[data-sp-play]').forEach((b) => b.addEventListener('click', () => {
             state.spotifyIndex = Number(b.dataset.spPlay);
             updateDashSpotify();
             renderActiveAppView();
+          }));
+          lucide.createIcons();
+          return;
+        }
+
+        if (id === 'soundcloud') {
+          const cur = state.soundcloudList[state.soundcloudIndex] || state.soundcloudList[0];
+          container.innerHTML = `
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2">
+                <span class="w-9 h-9 rounded-xl bg-orange-600 text-white flex items-center justify-center"><i data-lucide="cloud" class="w-5 h-5"></i></span>
+                <div>
+                  <h2 class="text-base font-bold text-white">SoundCloud Car Player</h2>
+                  <p class="text-[11px] text-orange-300">${state.auth.scUser ? `Đã đồng bộ tài khoản: ${escapeHtml(state.auth.scUser)}` : 'Nghe, tìm kiếm & đồng bộ tài khoản SoundCloud'}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button id="sc-sync-btn" type="button" class="px-3 py-1.5 rounded-xl bg-orange-600/25 hover:bg-orange-600/40 text-orange-200 border border-orange-400/30 text-xs font-semibold">Đăng nhập SoundCloud</button>
+                <button id="sc-back-dash" type="button" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white">Thu gọn</button>
+              </div>
+            </div>
+
+            <form id="sc-search-form" class="flex gap-2">
+              <input id="sc-search-input" type="text" value="${escapeHtml(state.scSearchQuery)}" placeholder="Tìm bài hát SoundCloud (hoặc dán link soundcloud.com/...)..." class="flex-1 bg-[#0b0f18] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500" />
+              <button type="submit" class="px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shrink-0">${state.scSearching ? 'Đang tìm...' : 'Tìm kiếm'}</button>
+            </form>
+
+            ${state.scSearchResults.length > 0 ? `
+              <div class="bg-[#0b0f18] border border-orange-500/25 rounded-2xl p-2.5 space-y-1.5 max-h-48 overflow-y-auto">
+                ${state.scSearchResults.map((r, i) => `
+                  <button type="button" data-sc-res="${i}" class="w-full flex items-center justify-between gap-2 p-2 rounded-xl bg-[#141c2c]/80 hover:bg-orange-600/25 text-left transition">
+                    <div class="min-w-0">
+                      <div class="text-xs font-bold text-white truncate">${escapeHtml(r.title)}</div>
+                      <div class="text-[11px] text-slate-400 truncate">${escapeHtml(r.artist)}</div>
+                    </div>
+                    <span class="px-2 py-1 rounded-lg bg-orange-600 text-white text-[10px] font-bold shrink-0">Phát</span>
+                  </button>
+                `).join('')}
+              </div>
+            ` : (state.scSearchQuery && !state.auth.scToken ? `
+              <div class="bg-orange-950/30 border border-orange-500/25 rounded-xl px-3 py-2 flex items-center justify-between gap-2 text-xs text-orange-200">
+                <span>Mở tìm kiếm "${escapeHtml(state.scSearchQuery)}" trên SoundCloud</span>
+                <a href="https://soundcloud.com/search?q=${encodeURIComponent(state.scSearchQuery)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-orange-600 text-white font-bold shrink-0">Mở SoundCloud</a>
+              </div>
+            ` : '')}
+
+            <div class="w-full h-[220px] rounded-2xl overflow-hidden bg-[#121212] border border-white/10 shrink-0">
+              <iframe class="w-full h-full" scrolling="no" frameborder="no" allow="autoplay" src="${escapeHtml(getSoundCloudEmbedUrl(cur.url, false))}"></iframe>
+            </div>
+
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Danh sách SoundCloud trên xe (${state.soundcloudList.length})</div>
+              <div class="space-y-1.5">
+                ${state.soundcloudList.map((s, idx) => `
+                  <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl border ${idx === state.soundcloudIndex ? 'bg-orange-600/20 border-orange-500/40' : 'bg-[#0c111c] border-white/5 hover:border-white/15'}">
+                    <button type="button" data-sc-play="${idx}" class="flex-1 text-left min-w-0">
+                      <div class="text-xs font-bold text-white truncate">${escapeHtml(s.title)}</div>
+                      <div class="text-[11px] text-slate-400 truncate">${escapeHtml(s.artist)}</div>
+                    </button>
+                    ${state.soundcloudList.length > 1 ? `
+                      <button type="button" data-sc-del="${idx}" class="w-7 h-7 rounded-lg bg-white/5 hover:bg-red-500/30 text-slate-400 hover:text-red-300 flex items-center justify-center shrink-0">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+          document.getElementById('sc-back-dash').addEventListener('click', () => openFeature('maps'));
+          document.getElementById('sc-sync-btn').addEventListener('click', openSyncModal);
+          document.getElementById('sc-search-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            searchSoundCloudDirect(document.getElementById('sc-search-input').value);
+          });
+          container.querySelectorAll('[data-sc-res]').forEach((b) => b.addEventListener('click', () => {
+            const item = state.scSearchResults[Number(b.dataset.scRes)];
+            if (!item) return;
+            state.soundcloudList.unshift({ url: item.url, title: item.title, artist: item.artist });
+            state.soundcloudIndex = 0;
+            state.scSearchResults = [];
+            saveState(); updateDashSoundCloud(); renderActiveAppView();
+          }));
+          container.querySelectorAll('[data-sc-play]').forEach((b) => b.addEventListener('click', () => {
+            state.soundcloudIndex = Number(b.dataset.scPlay);
+            updateDashSoundCloud(); renderActiveAppView();
+          }));
+          container.querySelectorAll('[data-sc-del]').forEach((b) => b.addEventListener('click', () => {
+            state.soundcloudList.splice(Number(b.dataset.scDel), 1);
+            state.soundcloudIndex = Math.max(0, Math.min(state.soundcloudIndex, state.soundcloudList.length - 1));
+            saveState(); updateDashSoundCloud(); renderActiveAppView();
           }));
           lucide.createIcons();
           return;
@@ -2500,7 +3055,7 @@
               <div class="w-9 h-9 rounded-xl bg-gradient-to-br ${escapeHtml(f.color)} text-white flex items-center justify-center shrink-0"><i data-lucide="${escapeHtml(f.icon)}" class="w-4 h-4"></i></div>
               <div class="min-w-0"><div class="text-xs font-bold text-white truncate">${escapeHtml(f.name)}</div><div class="text-[11px] text-slate-400 truncate">${escapeHtml(f.desc)}</div></div>
             </div>
-            <button type="button" data-toggle-feat="${escapeHtml(f.id)}" class="px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 ${f.enabled ? 'bg-red-500/20 text-red-300' : 'bg-emerald-600 text-white'}">${f.enabled ? 'Xóa' : 'Thêm'}</button>
+            <button type="button" data-toggle-feat="${escapeHtml(f.id)}" class="px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 ${f.enabled ? 'bg-red-500/20 text-red-300' : 'bg-emerald-600 text-white'}">${f.enabled ? 'Tắt' : 'Bật'}</button>
           </div>
         `).join('');
 
@@ -2542,6 +3097,7 @@
         const lower = (cmd || '').toLowerCase();
         document.getElementById('assistant-transcript').textContent = `"${cmd}"`;
         if (lower.includes('youtube')) { closeAssistant(); openFeature('youtube'); }
+        else if (lower.includes('soundcloud')) { closeAssistant(); openFeature('soundcloud'); }
         else if (lower.includes('spotify') || lower.includes('nhạc')) { closeAssistant(); openFeature('spotify'); }
         else if (lower.includes('điện thoại') || lower.includes('gọi')) { closeAssistant(); openFeature('phone'); }
         else if (lower.includes('gần đây')) {
@@ -2575,6 +3131,23 @@
         document.getElementById('modal-sync').addEventListener('click', (e) => { if (e.target.id === 'modal-sync') closeSyncModal(); });
         document.getElementById('btn-yt-oauth').addEventListener('click', startYouTubeOAuth);
         document.getElementById('btn-sp-oauth').addEventListener('click', startSpotifyOAuth);
+        document.getElementById('btn-sc-oauth').addEventListener('click', startSoundCloudOAuth);
+        document.getElementById('btn-sc-logout').addEventListener('click', () => {
+          state.auth.scUser = null; state.auth.scToken = null; saveState(); updateSyncStatusUI(); showToast('Đã đăng xuất SoundCloud.', 'info');
+        });
+        document.getElementById('form-sync-sc-url').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const nm = document.getElementById('input-sync-sc-name').value.trim();
+          const url = document.getElementById('input-sync-sc-url').value.trim();
+          if (!url.includes('soundcloud.com/')) { showToast('Hãy dán link soundcloud.com hợp lệ.', 'error'); return; }
+          state.soundcloudList.unshift({ url, title: nm || 'SoundCloud cá nhân', artist: 'Thư viện của bạn' });
+          state.soundcloudIndex = 0;
+          saveState(); updateDashSoundCloud();
+          document.getElementById('input-sync-sc-name').value = '';
+          document.getElementById('input-sync-sc-url').value = '';
+          closeSyncModal(); setDashMediaTab('soundcloud');
+          showToast('Đã lưu và mở SoundCloud cá nhân!', 'success');
+        });
         document.getElementById('btn-yt-logout').addEventListener('click', () => {
           state.auth.ytUser = null; state.auth.ytToken = null; state.auth.ytUseAccountEmbed = false; saveState(); updateSyncStatusUI(); updateDashYouTube(); showToast('Đã đăng xuất YouTube.', 'info');
         });
@@ -2725,6 +3298,7 @@
         // Media controls
         document.getElementById('dash-tab-youtube').addEventListener('click', () => setDashMediaTab('youtube'));
         document.getElementById('dash-tab-spotify').addEventListener('click', () => setDashMediaTab('spotify'));
+        document.getElementById('dash-tab-soundcloud').addEventListener('click', () => setDashMediaTab('soundcloud'));
         document.getElementById('btn-expand-media').addEventListener('click', () => openFeature(state.dashMediaTab));
         document.getElementById('dash-yt-prev').addEventListener('click', () => {
           state.youtubeIndex = (state.youtubeIndex - 1 + state.youtubeList.length) % state.youtubeList.length;
@@ -2737,6 +3311,10 @@
         document.getElementById('dash-sp-next').addEventListener('click', () => {
           state.spotifyIndex = (state.spotifyIndex + 1) % state.spotifyList.length;
           updateDashSpotify();
+        });
+        document.getElementById('dash-sc-next').addEventListener('click', () => {
+          state.soundcloudIndex = (state.soundcloudIndex + 1) % state.soundcloudList.length;
+          updateDashSoundCloud();
         });
 
         // Assistant
