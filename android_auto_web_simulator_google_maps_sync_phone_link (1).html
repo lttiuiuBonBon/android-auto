@@ -1,0 +1,2630 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Android Auto Web Simulator — Google Maps, Sync & Phone Link</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --aa-bg: #070a10;
+      --aa-surface: #121722;
+      --aa-card: #171e2c;
+      --aa-border: rgba(255, 255, 255, 0.08);
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--aa-bg);
+      color: #f1f5f9;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.25); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.45); }
+    .assistant-ring {
+      background: conic-gradient(#4285F4 0deg 90deg, #EA4335 90deg 180deg, #FBBC05 180deg 270deg, #34A853 270deg 360deg);
+    }
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+    .listening-pulse { animation: pulseGlow 1.1s ease-in-out infinite; }
+    @keyframes eqBar {
+      0%, 100% { height: 22%; }
+      50% { height: 95%; }
+    }
+    .eq-bar { animation: eqBar 0.75s ease-in-out infinite; }
+    .eq-bar:nth-child(2) { animation-delay: 0.15s; }
+    .eq-bar:nth-child(3) { animation-delay: 0.3s; }
+    .eq-bar:nth-child(4) { animation-delay: 0.45s; }
+    .eq-paused .eq-bar { animation-play-state: paused; height: 25% !important; }
+    .aa-card {
+      background: linear-gradient(180deg, rgba(24, 31, 46, 0.96) 0%, rgba(16, 21, 32, 0.98) 100%);
+      border: 1px solid var(--aa-border);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    }
+    .dock-btn { transition: transform 0.15s ease, background-color 0.15s ease; }
+    .dock-btn:active { transform: scale(0.92); }
+    .gmaps-dark-filter {
+      filter: invert(90%) hue-rotate(180deg) brightness(95%) contrast(92%);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden select-none">
+  <!-- Main Android Auto Head Unit Frame -->
+  <div id="aa-shell" class="h-full w-full flex flex-col-reverse md:flex-row bg-[#070a10] p-1.5 md:p-2.5 gap-2">
+
+    <!-- Coolwalk Navigation Rail -->
+    <aside id="aa-rail" class="shrink-0 h-16 md:h-full w-full md:w-[78px] bg-[#101520] border border-white/10 rounded-2xl md:rounded-3xl flex flex-row md:flex-col items-center justify-between px-2 md:px-0 py-1.5 md:py-3.5 z-30 shadow-2xl">
+      <!-- Clock + Status -->
+      <div class="flex md:flex-col items-center gap-1.5 md:gap-1 px-1">
+        <div id="rail-clock" class="text-sm md:text-base font-bold tracking-tight text-white tabular-nums">--:--</div>
+        <div class="hidden md:flex items-center gap-1 text-[10px] text-slate-400">
+          <span id="rail-gps-dot" class="w-2 h-2 rounded-full bg-amber-400" title="Trạng thái GPS"></span>
+          <i id="rail-bt-icon" data-lucide="bluetooth-off" class="w-3 h-3 text-slate-500"></i>
+          <i data-lucide="battery-charging" class="w-3 h-3 text-emerald-400"></i>
+        </div>
+      </div>
+
+      <!-- Dynamic Pinned Feature Icons -->
+      <nav id="rail-apps" class="flex flex-row md:flex-col items-center gap-1.5 md:gap-2.5 overflow-x-auto md:overflow-y-auto max-w-[50vw] md:max-w-none md:max-h-[56vh] py-0.5 px-1" aria-label="Ứng dụng Android Auto"></nav>
+
+      <!-- Bottom System Controls -->
+      <div class="flex flex-row md:flex-col items-center gap-1.5 md:gap-2">
+        <button id="btn-open-manager" type="button" title="Thêm / Xóa tính năng" class="dock-btn w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-indigo-500/20 hover:bg-indigo-500/35 border border-indigo-400/30 text-indigo-300 flex items-center justify-center">
+          <i data-lucide="sliders-horizontal" class="w-5 h-5"></i>
+        </button>
+        <button id="btn-assistant" type="button" title="Trợ lý giọng nói Google Assistant" class="dock-btn w-10 h-10 md:w-11 md:h-11 rounded-full p-[2.5px] assistant-ring shadow-lg">
+          <span class="w-full h-full rounded-full bg-[#101520] hover:bg-[#1a2234] flex items-center justify-center text-white">
+            <i data-lucide="mic" class="w-4 h-4 md:w-5 md:h-5"></i>
+          </span>
+        </button>
+        <button id="btn-home-toggle" type="button" title="Màn hình chính Coolwalk / Kho ứng dụng" class="dock-btn w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
+          <i id="home-toggle-icon" data-lucide="layout-grid" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Area -->
+    <main class="flex-1 min-w-0 min-h-0 flex flex-col gap-2 overflow-hidden relative">
+
+      <!-- Compact Top Head-Unit Bar -->
+      <header class="shrink-0 h-11 bg-[#101520]/90 border border-white/10 rounded-2xl px-3 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+          <span class="font-bold text-sm text-white truncate">Android Auto</span>
+          <span id="header-view-badge" class="hidden sm:inline-block text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/20 truncate">Coolwalk Chia đôi</span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="btn-header-phone-status" type="button" class="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10 transition">
+            <i id="header-bt-icon" data-lucide="bluetooth-off" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span id="header-phone-label" class="hidden md:inline">Chưa kết nối ĐT</span>
+          </button>
+          <button id="btn-open-sync" type="button" class="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-300 border border-emerald-500/30 transition">
+            <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Đồng bộ YT / Spotify</span>
+            <span class="sm:hidden">Đồng bộ</span>
+          </button>
+          <button id="btn-quick-gps" type="button" class="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/35 text-blue-300 border border-blue-500/30 transition">
+            <i data-lucide="locate-fixed" class="w-3.5 h-3.5"></i>
+            <span id="header-gps-label" class="hidden lg:inline">Định vị GPS</span>
+          </button>
+          <button id="btn-header-add-feature" type="button" class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span class="hidden lg:inline">Tính năng</span>
+          </button>
+          <button id="btn-fullscreen" type="button" title="Toàn màn hình" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 flex items-center justify-center transition">
+            <i data-lucide="maximize-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Dynamic Stage -->
+      <div id="aa-stage" class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 overflow-hidden">
+
+        <!-- LEFT / PRIMARY PANEL: Google Maps & Turn-by-Turn Navigation -->
+        <section id="panel-maps" class="lg:col-span-7 aa-card rounded-3xl flex flex-col overflow-hidden min-h-[340px] relative">
+          <!-- Turn-by-Turn Navigation HUD Banner -->
+          <div id="nav-hud" class="hidden shrink-0 bg-emerald-700/95 text-white px-4 py-2.5 flex items-center justify-between gap-3 z-20 border-b border-emerald-400/30">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-2xl bg-emerald-900/70 flex items-center justify-center shrink-0">
+                <i data-lucide="corner-up-right" class="w-6 h-6 text-emerald-200"></i>
+              </div>
+              <div class="min-w-0">
+                <div id="nav-hud-instruction" class="font-bold text-sm sm:text-base truncate">Đang dẫn đường bằng Google Maps</div>
+                <div id="nav-hud-sub" class="text-xs text-emerald-100/90 truncate">Đích đến...</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <div class="text-right">
+                <div id="nav-hud-eta" class="font-extrabold text-sm sm:text-base">-- phút</div>
+                <div id="nav-hud-dist" class="text-[11px] text-emerald-100">-- km</div>
+              </div>
+              <button id="btn-stop-nav" type="button" title="Dừng chỉ đường" class="w-9 h-9 rounded-xl bg-red-500/80 hover:bg-red-500 text-white flex items-center justify-center">
+                <i data-lucide="x" class="w-5 h-5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Google Maps Search & Controls Bar -->
+          <div class="shrink-0 p-2.5 bg-[#121826]/95 border-b border-white/10 flex flex-col gap-2 z-20">
+            <div class="relative flex items-center gap-1.5">
+              <form id="map-search-form" class="flex-1 flex items-center gap-1.5 bg-[#0b0f18] border border-white/10 rounded-2xl px-3 py-1.5 focus-within:border-blue-500/60">
+                <i data-lucide="search" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                <input id="map-search-input" type="text" autocomplete="off" placeholder="Tìm bất kỳ địa chỉ, tỉnh thành, địa danh trên Google Maps..." class="w-full bg-transparent text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none" />
+                <button type="submit" class="px-2.5 py-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shrink-0 transition">Chỉ đường</button>
+              </form>
+              <button id="btn-save-place" type="button" title="Lưu vị trí hoặc điểm đến vào danh sách nhanh" class="w-9 h-9 rounded-xl bg-white/5 hover:bg-amber-500/25 text-amber-300 flex items-center justify-center shrink-0">
+                <i data-lucide="bookmark-plus" class="w-4 h-4"></i>
+              </button>
+              <button id="btn-map-expand" type="button" title="Phóng to / Thu nhỏ bản đồ" class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/15 text-slate-200 flex items-center justify-center shrink-0">
+                <i data-lucide="expand" class="w-4 h-4"></i>
+              </button>
+              <!-- Global Search Suggestions Dropdown -->
+              <div id="map-search-results" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-[#101726]/98 border border-blue-400/30 rounded-2xl shadow-2xl z-40 max-h-60 overflow-y-auto divide-y divide-white/5"></div>
+            </div>
+
+            <!-- Nearby POIs + Google Maps Layer & Voice Controls -->
+            <div class="flex items-center justify-between gap-2 overflow-x-auto pb-0.5">
+              <div id="map-quick-places" class="flex items-center gap-1.5 shrink-0"></div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button id="btn-map-style" type="button" title="Đổi kiểu bản đồ Google (Tiêu chuẩn / Ban đêm / Vệ tinh / Kết hợp)" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-[11px] font-medium text-slate-300 flex items-center gap-1">
+                  <i data-lucide="layers" class="w-3.5 h-3.5 text-sky-400"></i>
+                  <span id="map-style-label">Google Tiêu chuẩn</span>
+                </button>
+                <button id="btn-voice-nav" type="button" title="Bật/tắt giọng nói chỉ đường tiếng Việt" class="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-[11px] font-medium text-emerald-300 flex items-center gap-1">
+                  <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                  <span id="voice-nav-label">Giọng nói: Bật</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Embedded Google Maps Viewport -->
+          <div class="flex-1 relative min-h-[240px] w-full bg-[#0d121c] overflow-hidden">
+            <iframe id="gmaps-iframe" class="w-full h-full min-h-[240px] border-0" src="https://maps.google.com/maps?q=10.77556,106.70194&hl=vi&z=15&t=m&output=embed" title="Google Maps Navigation" loading="eager" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+
+            <!-- Floating Speed & GPS Telemetry Pill -->
+            <div class="absolute bottom-3 left-3 z-20 flex items-center gap-2 pointer-events-auto">
+              <div class="bg-[#0b101b]/92 backdrop-blur-md border border-white/15 rounded-2xl px-3 py-1.5 flex items-center gap-2 shadow-xl">
+                <div class="text-center leading-none">
+                  <div id="map-speed-val" class="text-lg font-extrabold text-white tabular-nums">0</div>
+                  <div class="text-[9px] text-slate-400 uppercase font-semibold">km/h</div>
+                </div>
+                <div class="h-6 w-px bg-white/15"></div>
+                <div class="text-[11px] leading-tight">
+                  <div id="map-gps-status" class="font-semibold text-amber-300">Chưa khóa GPS</div>
+                  <div id="map-coords-text" class="text-[10px] text-slate-400 tabular-nums">10.7756, 106.7019</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Floating Google Maps Action Buttons -->
+            <div class="absolute bottom-3 right-3 z-20 flex flex-col sm:flex-row items-end sm:items-center gap-1.5">
+              <a id="btn-open-gmaps" href="https://www.google.com/maps/search/?api=1&query=10.77556,106.70194" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl bg-blue-600/95 hover:bg-blue-500 text-white font-semibold text-xs shadow-lg flex items-center gap-1.5 transition">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Mở App Google Maps</span>
+              </a>
+              <button id="btn-locate-me" type="button" title="Định vị vị trí thiết bị của tôi" class="w-9 h-9 rounded-xl bg-[#0b101b]/95 hover:bg-blue-600 text-white border border-white/15 shadow-lg flex items-center justify-center transition">
+                <i data-lucide="crosshair" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Turn-by-turn Steps Drawer -->
+          <div id="nav-steps-bar" class="hidden shrink-0 max-h-32 overflow-y-auto bg-[#0e1420] border-t border-white/10 px-3 py-2 text-xs space-y-1.5"></div>
+        </section>
+
+        <!-- RIGHT / SECONDARY PANEL: Modular Coolwalk Widgets or Full Feature App -->
+        <section id="panel-secondary" class="lg:col-span-5 flex flex-col gap-2 min-h-0 overflow-y-auto">
+
+          <!-- DASHBOARD SPLIT-SCREEN MODE -->
+          <div id="view-dashboard" class="flex flex-col gap-2 h-full min-h-0">
+
+            <!-- Media Switcher Card (YouTube Ad-Free / Spotify) -->
+            <div id="dash-media-card" class="aa-card rounded-3xl p-3 flex flex-col gap-2.5 flex-1 min-h-[240px]">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 bg-[#0b0f18] p-1 rounded-xl border border-white/10">
+                  <button id="dash-tab-youtube" type="button" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-red-600 text-white transition">
+                    <i data-lucide="play-circle" class="w-3.5 h-3.5"></i>
+                    <span>YouTube No-Ads</span>
+                  </button>
+                  <button id="dash-tab-spotify" type="button" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white transition">
+                    <i data-lucide="music" class="w-3.5 h-3.5"></i>
+                    <span>Spotify</span>
+                  </button>
+                </div>
+                <button id="btn-expand-media" type="button" class="text-[11px] font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                  <span>Mở rộng</span>
+                  <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <!-- Quick YouTube Mini Player -->
+              <div id="dash-youtube-box" class="flex-1 flex flex-col gap-2 min-h-0">
+                <div class="relative w-full flex-1 min-h-[180px] rounded-2xl overflow-hidden bg-black border border-white/10">
+                  <iframe id="dash-yt-iframe" class="w-full h-full" src="https://www.youtube-nocookie.com/embed/n61ULEU7CO0?rel=0&modestbranding=1&iv_load_policy=3" title="YouTube Ad-Free Player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <div id="dash-yt-title" class="text-xs font-bold text-white truncate">Best of lofi hip hop 2021 [Lofi Girl]</div>
+                    <div id="dash-yt-sync-badge" class="text-[11px] text-emerald-400 flex items-center gap-1">
+                      <i data-lucide="shield-check" class="w-3 h-3"></i>
+                      <span>Chế độ youtube-nocookie không quảng cáo</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button id="dash-yt-prev" type="button" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white" title="Video trước">
+                      <i data-lucide="skip-back" class="w-4 h-4"></i>
+                    </button>
+                    <button id="dash-yt-next" type="button" class="w-8 h-8 rounded-xl bg-red-600 hover:bg-red-500 flex items-center justify-center text-white" title="Video tiếp theo">
+                      <i data-lucide="skip-forward" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Spotify Mini Player -->
+              <div id="dash-spotify-box" class="hidden flex-1 flex flex-col gap-2 min-h-0">
+                <div class="flex-1 min-h-[180px] rounded-2xl overflow-hidden bg-[#121212] border border-white/10">
+                  <iframe id="dash-sp-iframe" class="w-full h-full min-h-[180px]" src="https://open.spotify.com/embed/playlist/37i9dQZF1DWWQRwui0ExPn?utm_source=generator&theme=0" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <div id="dash-sp-title" class="text-xs font-semibold text-emerald-300 truncate">Lo-Fi Beats — Spotify</div>
+                  <button id="dash-sp-next" type="button" class="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold shrink-0">Đổi Playlist</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic Secondary Widget Cards -->
+            <div id="dash-widgets-grid" class="grid grid-cols-2 gap-2 shrink-0"></div>
+          </div>
+
+          <!-- FULL APP VIEW CONTAINER -->
+          <div id="view-app" class="hidden aa-card rounded-3xl p-4 flex flex-col gap-3 h-full min-h-0 overflow-y-auto"></div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL: Đăng nhập nhanh & Thư viện cá nhân YouTube / Spotify -->
+  <div id="modal-sync" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="bg-[#121826] border border-white/15 rounded-3xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="user-check" class="w-5 h-5 text-emerald-400"></i>
+            <span>Đăng nhập nhanh & Playlist cá nhân</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Đăng nhập 1 chạm trên trình duyệt xe (không cần Client ID) và lưu sẵn các Playlist yêu thích của riêng bạn.</p>
+        </div>
+        <button id="btn-close-sync" type="button" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4">
+        <!-- YouTube Simple Login + Named Playlist -->
+        <div class="bg-[#0b0f18] border border-red-500/25 rounded-2xl p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <span class="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center"><i data-lucide="play-circle" class="w-5 h-5"></i></span>
+              <div>
+                <div class="text-sm font-bold text-white">YouTube cá nhân (Không quảng cáo)</div>
+                <div id="sync-yt-status" class="text-xs text-slate-400">Đăng nhập trình duyệt hoặc lưu Playlist yêu thích</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <a href="https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fwww.youtube.com%2F" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Đăng nhập YouTube</span>
+              </a>
+              <button id="btn-yt-logout" type="button" class="hidden px-2.5 py-1.5 rounded-xl bg-white/10 text-red-300 text-xs font-semibold">Đăng xuất</button>
+            </div>
+          </div>
+
+          <form id="form-sync-yt-playlist" class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <input id="input-sync-yt-name" type="text" placeholder="Tên gợi nhớ (VD: Nhạc đi đường dài)" class="sm:col-span-4 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400" />
+            <input id="input-sync-yt-pl" type="text" required placeholder="Dán link Playlist (?list=...) hoặc Video YouTube" class="sm:col-span-6 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400" />
+            <button type="submit" class="sm:col-span-2 px-3 py-2 rounded-xl bg-red-600/85 hover:bg-red-500 text-white text-xs font-bold transition">Lưu</button>
+          </form>
+        </div>
+
+        <!-- Spotify Simple Login + Named Playlist -->
+        <div class="bg-[#0b0f18] border border-emerald-500/25 rounded-2xl p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <span class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center"><i data-lucide="music" class="w-5 h-5"></i></span>
+              <div>
+                <div class="text-sm font-bold text-white">Spotify cá nhân</div>
+                <div id="sync-sp-status" class="text-xs text-slate-400">Đăng nhập 1 chạm để nghe trọn bài Premium</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <a href="https://accounts.spotify.com/login?continue=https%3A%2F%2Fopen.spotify.com%2F" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Đăng nhập Spotify</span>
+              </a>
+              <button id="btn-sp-reload" type="button" title="Làm mới trình phát sau khi đăng nhập xong" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-emerald-200 text-xs font-semibold flex items-center gap-1">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Làm mới</span>
+              </button>
+              <button id="btn-sp-logout" type="button" class="hidden px-2.5 py-1.5 rounded-xl bg-white/10 text-red-300 text-xs font-semibold">Đăng xuất</button>
+            </div>
+          </div>
+
+          <form id="form-sync-sp-playlist" class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <input id="input-sync-sp-name" type="text" placeholder="Tên gợi nhớ (VD: Nhạc chill tối)" class="sm:col-span-4 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400" />
+            <input id="input-sync-sp-pl" type="text" required placeholder="Dán link Playlist / Album / Bài hát Spotify" class="sm:col-span-6 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400" />
+            <button type="submit" class="sm:col-span-2 px-3 py-2 rounded-xl bg-emerald-600/85 hover:bg-emerald-500 text-white text-xs font-bold transition">Lưu</button>
+          </form>
+        </div>
+
+        <!-- Collapsible Advanced OAuth (Hidden by default for simplicity) -->
+        <details class="bg-[#0b0f18] border border-white/10 rounded-2xl p-3.5">
+          <summary class="cursor-pointer text-xs font-bold text-slate-300 hover:text-white flex items-center justify-between">
+            <span>⚙️ Tùy chọn nâng cao: Tự động đồng bộ OAuth Client ID (dành cho web tự host)</span>
+            <span class="text-[11px] text-slate-500">Mở rộng</span>
+          </summary>
+          <div class="mt-3 space-y-2.5 pt-2.5 border-t border-white/10">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <input id="input-google-client-id" type="text" placeholder="Google OAuth Client ID" class="sm:col-span-2 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400" />
+              <button id="btn-yt-oauth" type="button" class="px-3 py-2 rounded-xl bg-red-600/80 hover:bg-red-500 text-white text-xs font-bold">OAuth YouTube</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <input id="input-spotify-client-id" type="text" placeholder="Spotify App Client ID" class="sm:col-span-2 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400" />
+              <button id="btn-sp-oauth" type="button" class="px-3 py-2 rounded-xl bg-emerald-600/80 hover:bg-emerald-500 text-white text-xs font-bold">OAuth Spotify</button>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Quản lý Thêm / Xóa Tính năng -->
+  <div id="modal-manager" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="bg-[#121826] border border-white/15 rounded-3xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="sliders-horizontal" class="w-5 h-5 text-indigo-400"></i>
+            <span>Quản lý & Thêm / Xóa tính năng Android Auto</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Bật/tắt các ứng dụng có sẵn hoặc tự thêm tính năng tùy chỉnh mới vào màn hình xe.</p>
+        </div>
+        <button id="btn-close-manager" type="button" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-5">
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Tính năng tích hợp sẵn</h3>
+            <span id="manager-count-badge" class="text-xs font-semibold text-indigo-300 bg-indigo-500/15 px-2.5 py-0.5 rounded-full">6 đang bật</span>
+          </div>
+          <div id="manager-builtin-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+        </div>
+
+        <div id="manager-custom-section" class="hidden">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">Tính năng bạn đã tự thêm</h3>
+          <div id="manager-custom-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+        </div>
+
+        <div class="bg-[#0b0f18] border border-indigo-500/25 rounded-2xl p-4">
+          <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-400"></i>
+            <span>Tạo & Thêm tính năng mới</span>
+          </h3>
+          <form id="form-add-feature" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="new-feat-name" class="block text-xs font-medium text-slate-300 mb-1">Tên tính năng *</label>
+              <input id="new-feat-name" type="text" required placeholder="VD: Camera hành trình, Zing MP3, Ghi chú..." class="w-full bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-400" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label for="new-feat-emoji" class="block text-xs font-medium text-slate-300 mb-1">Biểu tượng</label>
+                <input id="new-feat-emoji" type="text" value="🚗" maxlength="4" class="w-full bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white text-center focus:outline-none focus:border-indigo-400" />
+              </div>
+              <div>
+                <label for="new-feat-color" class="block text-xs font-medium text-slate-300 mb-1">Màu chủ đạo</label>
+                <select id="new-feat-color" class="w-full bg-[#141c2c] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-400">
+                  <option value="from-indigo-500 to-purple-600">Tím Indigo</option>
+                  <option value="from-blue-500 to-cyan-500">Xanh Dương</option>
+                  <option value="from-emerald-500 to-teal-600">Xanh Lá</option>
+                  <option value="from-rose-500 to-orange-500">Đỏ Cam</option>
+                  <option value="from-amber-500 to-yellow-500">Vàng Hổ Phách</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label for="new-feat-type" class="block text-xs font-medium text-slate-300 mb-1">Loại tính năng</label>
+              <select id="new-feat-type" class="w-full bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-400">
+                <option value="embed">Nhúng trang web / Web App (URL)</option>
+                <option value="note">Bảng ghi chú lái xe nhanh</option>
+                <option value="checklist">Danh sách kiểm tra xe trước chuyến đi</option>
+              </select>
+            </div>
+            <div>
+              <label for="new-feat-payload" class="block text-xs font-medium text-slate-300 mb-1">URL trang web hoặc Nội dung mặc định</label>
+              <input id="new-feat-payload" type="text" placeholder="https://... hoặc nội dung ghi chú" class="w-full bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-400" />
+            </div>
+            <div class="sm:col-span-2 flex justify-end gap-2 pt-1">
+              <button id="btn-reset-features" type="button" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition">Khôi phục mặc định</button>
+              <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Thêm vào Android Auto</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Google Assistant Voice Overlay -->
+  <div id="modal-assistant" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+    <div class="bg-[#121826] border border-white/15 rounded-3xl w-full max-w-md p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div id="assistant-orb" class="w-10 h-10 rounded-full p-[3px] assistant-ring">
+            <div class="w-full h-full rounded-full bg-[#121826] flex items-center justify-center">
+              <i data-lucide="mic" class="w-5 h-5 text-white"></i>
+            </div>
+          </div>
+          <div>
+            <div class="font-bold text-sm text-white">Google Assistant</div>
+            <div id="assistant-status" class="text-xs text-slate-400">Chạm mic hoặc chọn lệnh nhanh</div>
+          </div>
+        </div>
+        <button id="btn-close-assistant" type="button" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div id="assistant-transcript" class="bg-[#0b0f18] border border-white/10 rounded-2xl p-3 text-sm text-blue-200 min-h-[54px] flex items-center">
+        "Nói: Chỉ đường đến Đà Lạt, Tìm trạm xăng gần đây, Mở Spotify, hoặc Kết nối điện thoại..."
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <button type="button" data-voice-cmd="Tìm trạm xăng gần đây" class="voice-chip px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/30 text-blue-300 text-xs font-medium border border-blue-400/20">Trạm xăng gần đây</button>
+        <button type="button" data-voice-cmd="Chỉ đường đến Đà Lạt" class="voice-chip px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/30 text-blue-300 text-xs font-medium border border-blue-400/20">Chỉ đường đến Đà Lạt</button>
+        <button type="button" data-voice-cmd="Mở YouTube" class="voice-chip px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/30 text-red-300 text-xs font-medium border border-red-400/20">Mở YouTube No-Ads</button>
+        <button type="button" data-voice-cmd="Mở Spotify" class="voice-chip px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-300 text-xs font-medium border border-emerald-400/20">Mở Spotify</button>
+        <button type="button" data-voice-cmd="Mở điện thoại" class="voice-chip px-3 py-1.5 rounded-xl bg-teal-500/15 hover:bg-teal-500/30 text-teal-300 text-xs font-medium border border-teal-400/20">Kết nối Điện thoại</button>
+      </div>
+
+      <button id="btn-start-speech" type="button" class="w-full py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold flex items-center justify-center gap-2 transition">
+        <i data-lucide="mic" class="w-4 h-4"></i>
+        <span>Nhấn để nói (Tiếng Việt)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-[60] flex flex-col gap-2 pointer-events-none max-w-xs w-full"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================
+      // 1. CONSTANTS & GROUNDED DEFAULTS
+      // =========================================================
+      const STORAGE_KEY = 'aa_web_sim_state_v2';
+      const DEFAULT_COORDS = { lat: 10.77556, lng: 106.70194 };
+
+      const GOOGLE_MAP_STYLES = [
+        { id: 'm', label: 'Google Tiêu chuẩn', darkFilter: false },
+        { id: 'm', label: 'Google Ban đêm', darkFilter: true },
+        { id: 'k', label: 'Google Vệ tinh', darkFilter: false },
+        { id: 'h', label: 'Google Kết hợp', darkFilter: false }
+      ];
+
+      const NEARBY_CATEGORIES = [
+        { label: '⛽ Trạm xăng', query: 'trạm xăng' },
+        { label: '🅿️ Bãi đỗ xe', query: 'bãi đỗ xe' },
+        { label: '☕ Cà phê', query: 'quán cà phê' },
+        { label: '🍽️ Quán ăn', query: 'nhà hàng quán ăn' },
+        { label: '🏥 Bệnh viện', query: 'bệnh viện' }
+      ];
+
+      const DEFAULT_YOUTUBE_LIST = [
+        { type: 'video', id: 'n61ULEU7CO0', title: 'Best of lofi hip hop 2021 [Lofi Girl]', channel: 'Lofi Girl' },
+        { type: 'video', id: 'e7LvRmnI9p4', title: 'Spring Road Trip — The Scenic Route [Driving Mix]', channel: 'Chillhop Music' },
+        { type: 'video', id: 'BX0vgfJmLkw', title: 'Feel Good Summer Lofi — Road Trips & Relax', channel: 'Little Soul' },
+        { type: 'video', id: 'YWm6ULnJtNM', title: 'Ho Chi Minh City 8K — Landmark 81 & Ben Thanh', channel: 'City Views 8K' }
+      ];
+
+      const DEFAULT_SPOTIFY_LIST = [
+        { type: 'playlist', id: '37i9dQZF1DWWQRwui0ExPn', title: 'Lo-Fi Beats', subtitle: 'Spotify Official' },
+        { type: 'playlist', id: '37i9dQZF1DXcBWIGoYBM5M', title: "Today's Top Hits", subtitle: 'Spotify Official' },
+        { type: 'playlist', id: '37i9dQZF1DX4sWSpwq3LiO', title: 'Peaceful Piano', subtitle: 'Spotify Official' },
+        { type: 'playlist', id: '37i9dQZF1DWXLeA8Omikj7', title: 'Brain Food', subtitle: 'Spotify Official' },
+        { type: 'playlist', id: '1S0icXSTkydc4LQy3U5o0y', title: 'Lo-Fi Lounge', subtitle: 'Driving Mix' }
+      ];
+
+      const DEFAULT_FEATURES = [
+        { id: 'maps', name: 'Google Maps', desc: 'Bản đồ Google & chỉ đường toàn cầu', icon: 'map-pin', color: 'from-blue-500 to-emerald-500', enabled: true, builtin: true },
+        { id: 'youtube', name: 'YouTube No-Ads', desc: 'Phát YouTube không quảng cáo & đồng bộ', icon: 'play-circle', color: 'from-red-500 to-rose-600', enabled: true, builtin: true },
+        { id: 'spotify', name: 'Spotify', desc: 'Nghe nhạc & đồng bộ tài khoản Spotify', icon: 'music', color: 'from-emerald-500 to-green-600', enabled: true, builtin: true },
+        { id: 'phone', name: 'Điện thoại', desc: 'Chỉ gọi khi kết nối Bluetooth / Phone Link', icon: 'phone', color: 'from-green-500 to-teal-600', enabled: true, builtin: true },
+        { id: 'weather', name: 'Thời tiết', desc: 'Thời tiết trực tiếp theo vị trí GPS', icon: 'cloud-sun', color: 'from-sky-500 to-blue-600', enabled: true, builtin: true },
+        { id: 'carstats', name: 'Thông số xe', desc: 'Tốc độ GPS, điều hòa & chế độ lái', icon: 'gauge', color: 'from-amber-500 to-orange-600', enabled: true, builtin: true },
+        { id: 'messages', name: 'Tin nhắn', desc: 'Đọc tin nhắn bằng giọng nói & trả lời nhanh', icon: 'message-square', color: 'from-violet-500 to-purple-600', enabled: false, builtin: true },
+        { id: 'radio', name: 'FM Radio', desc: 'Kênh VOV Giao Thông & đài FM', icon: 'radio', color: 'from-pink-500 to-rose-500', enabled: false, builtin: true }
+      ];
+
+      const CONTACTS = [
+        { name: 'Gia đình', phone: '0901234567', display: '0901 234 567', tag: 'Yêu thích' },
+        { name: 'Văn phòng', phone: '02838221100', display: '028 3822 1100', tag: 'Công việc' },
+        { name: 'Cứu hộ giao thông', phone: '19001000', display: '1900 1000', tag: 'Khẩn cấp' },
+        { name: 'Minh Tuấn', phone: '0918456789', display: '0918 456 789', tag: 'Gần đây' }
+      ];
+
+      const SAMPLE_MESSAGES = [
+        { id: 'm1', sender: 'Minh Anh', time: '2 phút trước', text: 'Bạn đang đến gần chưa? Mình đang đợi ở quán cà phê nhé!', replied: false },
+        { id: 'm2', sender: 'Hoàng Nam', time: '14 phút trước', text: 'Nhớ kiểm tra lộ trình Google Maps xem có kẹt xe không nha.', replied: false },
+        { id: 'm3', sender: 'Mẹ', time: '32 phút trước', text: 'Lái xe cẩn thận, tối nay về ăn cơm nhà nha con.', replied: false }
+      ];
+
+      const FM_STATIONS = [
+        { freq: '91.0 MHz', name: 'VOV Giao Thông', hz: 220 },
+        { freq: '99.9 MHz', name: 'VOH FM 99.9', hz: 261.63 },
+        { freq: '89.0 MHz', name: 'XoneFM Music', hz: 293.66 },
+        { freq: '95.6 MHz', name: 'Chill Drive FM', hz: 329.63 }
+      ];
+
+      // =========================================================
+      // 2. STATE
+      // =========================================================
+      let state = {
+        features: JSON.parse(JSON.stringify(DEFAULT_FEATURES)),
+        activeView: 'dashboard',
+        mapExpanded: false,
+        dashMediaTab: 'youtube',
+        mapStyleIndex: 0,
+        voiceNavEnabled: true,
+        savedPlaces: [],
+        gps: {
+          lat: DEFAULT_COORDS.lat,
+          lng: DEFAULT_COORDS.lng,
+          accuracy: null,
+          speedKmh: 0,
+          isReal: false,
+          statusText: 'Chưa khóa GPS (chạm Định vị)'
+        },
+        nav: {
+          active: false,
+          destination: null,
+          nearbyQuery: null,
+          steps: [],
+          distanceKm: 0,
+          durationMin: 0
+        },
+        auth: {
+          googleClientId: '',
+          spotifyClientId: '',
+          ytUser: null,
+          ytToken: null,
+          spUser: null,
+          spToken: null
+        },
+        phoneConn: {
+          connected: false,
+          protocol: null, // 'bluetooth' | 'tel_handoff' | 'companion_qr'
+          deviceName: '',
+          battery: null,
+          pairingPin: String(Math.floor(100000 + Math.random() * 900000))
+        },
+        youtubeList: JSON.parse(JSON.stringify(DEFAULT_YOUTUBE_LIST)),
+        youtubeIndex: 0,
+        spotifyList: JSON.parse(JSON.stringify(DEFAULT_SPOTIFY_LIST)),
+        spotifyIndex: 0,
+        synthPlaying: false,
+        weather: { temp: 30, wind: 11, code: 1, desc: 'Ít mây, nắng nhẹ', loaded: false },
+        car: { acLeft: 22, acRight: 23, driveMode: 'Normal', tripKm: 14.8, batteryPct: 84 },
+        phone: { dialNumber: '', calling: false, callName: '', callSeconds: 0 },
+        messages: JSON.parse(JSON.stringify(SAMPLE_MESSAGES)),
+        radio: { stationIndex: 0, playing: false }
+      };
+
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const p = JSON.parse(saved);
+          if (Array.isArray(p.features) && p.features.length > 0) state.features = p.features;
+          if (Array.isArray(p.youtubeList) && p.youtubeList.length > 0) state.youtubeList = p.youtubeList;
+          if (Array.isArray(p.spotifyList) && p.spotifyList.length > 0) state.spotifyList = p.spotifyList;
+          if (Array.isArray(p.savedPlaces)) state.savedPlaces = p.savedPlaces;
+          if (p.auth) {
+            state.auth.googleClientId = p.auth.googleClientId || '';
+            state.auth.spotifyClientId = p.auth.spotifyClientId || '';
+          }
+        }
+      } catch (e) {}
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            features: state.features,
+            youtubeList: state.youtubeList,
+            spotifyList: state.spotifyList,
+            savedPlaces: state.savedPlaces,
+            auth: {
+              googleClientId: state.auth.googleClientId,
+              spotifyClientId: state.auth.spotifyClientId
+            }
+          }));
+        } catch (e) {}
+      }
+
+      let geoWatchId = null;
+      let callInterval = null;
+      let audioCtx = null;
+      let synthInterval = null;
+      let radioOsc = null;
+      let radioGain = null;
+
+      // =========================================================
+      // 3. UTILITIES
+      // =========================================================
+      function showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const el = document.createElement('div');
+        const colors = {
+          info: 'bg-slate-900/95 border-blue-500/40 text-blue-100',
+          success: 'bg-emerald-950/95 border-emerald-500/50 text-emerald-100',
+          warn: 'bg-amber-950/95 border-amber-500/50 text-amber-100',
+          error: 'bg-red-950/95 border-red-500/50 text-red-100'
+        };
+        el.className = `pointer-events-auto border rounded-2xl px-3.5 py-2.5 text-xs font-medium shadow-2xl backdrop-blur-md transition-all duration-300 ${colors[type] || colors.info}`;
+        el.textContent = message;
+        container.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(-6px)';
+          setTimeout(() => el.remove(), 300);
+        }, 3400);
+      }
+
+      function speakVietnamese(text) {
+        if (!state.voiceNavEnabled || !('speechSynthesis' in window)) return;
+        try {
+          window.speechSynthesis.cancel();
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.lang = 'vi-VN';
+          utter.rate = 1.02;
+          window.speechSynthesis.speak(utter);
+        } catch (e) {}
+      }
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function extractYouTubeResource(input) {
+        const t = (input || '').trim();
+        if (!t) return null;
+        const listMatch = t.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+        if (listMatch && listMatch[1] && !t.includes('watch?v=')) {
+          return { type: 'playlist', id: listMatch[1] };
+        }
+        if (/^[a-zA-Z0-9_-]{11}$/.test(t)) return { type: 'video', id: t };
+        const patterns = [
+          /[?&]v=([a-zA-Z0-9_-]{11})/,
+          /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+          /embed\/([a-zA-Z0-9_-]{11})/,
+          /shorts\/([a-zA-Z0-9_-]{11})/
+        ];
+        for (const p of patterns) {
+          const m = t.match(p);
+          if (m && m[1]) return { type: 'video', id: m[1] };
+        }
+        if (listMatch && listMatch[1]) return { type: 'playlist', id: listMatch[1] };
+        return null;
+      }
+
+      function extractSpotifyResource(input) {
+        const t = (input || '').trim();
+        if (!t) return null;
+        const m = t.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(playlist|track|album|artist|episode|show)\/([a-zA-Z0-9]+)/i);
+        if (m) return { type: m[1].toLowerCase(), id: m[2] };
+        const uri = t.match(/spotify:(playlist|track|album|artist|episode|show):([a-zA-Z0-9]+)/i);
+        if (uri) return { type: uri[1].toLowerCase(), id: uri[2] };
+        return null;
+      }
+
+      function haversineKm(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      function getWeatherDesc(code) {
+        if (code === 0) return 'Trời quang đãng';
+        if (code <= 3) return 'Ít mây, nắng nhẹ';
+        if (code <= 48) return 'Có sương mù nhẹ';
+        if (code <= 67) return 'Có mưa rào';
+        if (code <= 82) return 'Mưa lớn cục bộ';
+        return 'Có dông, lái xe cẩn thận';
+      }
+
+      function updateClock() {
+        const now = new Date();
+        document.getElementById('rail-clock').textContent =
+          `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      }
+
+      // =========================================================
+      // 4. GOOGLE MAPS ENGINE + LIVE DEVICE GPS + GLOBAL SEARCH
+      // =========================================================
+      function updateGoogleMapsFrame() {
+        const iframe = document.getElementById('gmaps-iframe');
+        if (!iframe) return;
+        const style = GOOGLE_MAP_STYLES[state.mapStyleIndex];
+        let src = '';
+
+        if (state.nav.active && state.nav.destination) {
+          const d = state.nav.destination;
+          const daddr = (d.lat && d.lng) ? `${d.lat},${d.lng}` : encodeURIComponent(d.name);
+          src = `https://maps.google.com/maps?saddr=${state.gps.lat},${state.gps.lng}&daddr=${daddr}&hl=vi&t=${style.id}&output=embed`;
+        } else if (state.nav.nearbyQuery) {
+          src = `https://maps.google.com/maps?q=${encodeURIComponent(state.nav.nearbyQuery)}&sll=${state.gps.lat},${state.gps.lng}&hl=vi&z=14&t=${style.id}&output=embed`;
+        } else {
+          src = `https://maps.google.com/maps?q=${state.gps.lat},${state.gps.lng}&hl=vi&z=15&t=${style.id}&output=embed`;
+        }
+
+        if (iframe.src !== src) iframe.src = src;
+        iframe.classList.toggle('gmaps-dark-filter', !!style.darkFilter);
+        document.getElementById('map-style-label').textContent = style.label;
+      }
+
+      function updateGpsUI() {
+        document.getElementById('map-speed-val').textContent = Math.round(state.gps.speedKmh || 0);
+        const stEl = document.getElementById('map-gps-status');
+        stEl.textContent = state.gps.statusText;
+        stEl.className = state.gps.isReal ? 'font-semibold text-emerald-400' : 'font-semibold text-amber-300';
+        document.getElementById('map-coords-text').textContent = `${state.gps.lat.toFixed(4)}, ${state.gps.lng.toFixed(4)}`;
+        document.getElementById('rail-gps-dot').className = `w-2 h-2 rounded-full ${state.gps.isReal ? 'bg-emerald-400' : 'bg-amber-400'}`;
+        document.getElementById('header-gps-label').textContent = state.gps.isReal ? 'GPS: Đang theo dõi' : 'Định vị GPS';
+
+        const gmapsLink = document.getElementById('btn-open-gmaps');
+        if (state.nav.active && state.nav.destination) {
+          const d = state.nav.destination;
+          const destParam = (d.lat && d.lng) ? `${d.lat},${d.lng}` : encodeURIComponent(d.name);
+          gmapsLink.href = `https://www.google.com/maps/dir/?api=1&origin=${state.gps.lat},${state.gps.lng}&destination=${destParam}&travelmode=driving`;
+        } else {
+          gmapsLink.href = `https://www.google.com/maps/search/?api=1&query=${state.gps.lat},${state.gps.lng}`;
+        }
+
+        if (state.activeView === 'carstats') {
+          const spEl = document.getElementById('carstats-speed');
+          if (spEl) spEl.textContent = Math.round(state.gps.speedKmh || 0);
+        }
+      }
+
+      function requestDeviceGPS(refreshMap = true) {
+        if (!('geolocation' in navigator)) {
+          showToast('Trình duyệt không hỗ trợ định vị GPS.', 'warn');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude, accuracy, speed } = pos.coords;
+            state.gps.lat = latitude;
+            state.gps.lng = longitude;
+            state.gps.accuracy = accuracy;
+            state.gps.speedKmh = speed && speed > 0 ? speed * 3.6 : 0;
+            state.gps.isReal = true;
+            state.gps.statusText = `GPS thiết bị (±${Math.round(accuracy || 15)}m)`;
+            updateGpsUI();
+            if (refreshMap) updateGoogleMapsFrame();
+            fetchWeather(latitude, longitude);
+            showToast('Đã khóa định vị GPS thiết bị trên Google Maps!', 'success');
+
+            if (geoWatchId !== null) navigator.geolocation.clearWatch(geoWatchId);
+            geoWatchId = navigator.geolocation.watchPosition(
+              (p) => {
+                state.gps.lat = p.coords.latitude;
+                state.gps.lng = p.coords.longitude;
+                state.gps.accuracy = p.coords.accuracy;
+                state.gps.speedKmh = p.coords.speed && p.coords.speed > 0 ? p.coords.speed * 3.6 : 0;
+                state.gps.isReal = true;
+                state.gps.statusText = `GPS thiết bị (±${Math.round(p.coords.accuracy || 15)}m)`;
+                updateGpsUI();
+              },
+              () => {},
+              { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+            );
+          },
+          () => {
+            updateGpsUI();
+            showToast('Chưa có quyền GPS trình duyệt. Bạn vẫn có thể tìm & dẫn đường mọi nơi trên Google Maps.', 'warn');
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
+        );
+      }
+
+      async function fetchWeather(lat, lng) {
+        try {
+          const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&current=temperature_2m,wind_speed_10m,weather_code&timezone=auto`;
+          const res = await fetch(url);
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data && data.current) {
+            state.weather = {
+              temp: Math.round(data.current.temperature_2m),
+              wind: Math.round(data.current.wind_speed_10m),
+              code: data.current.weather_code,
+              desc: getWeatherDesc(data.current.weather_code),
+              loaded: true
+            };
+            renderDashboardWidgets();
+            if (state.activeView === 'weather') renderActiveAppView();
+          }
+        } catch (e) {}
+      }
+
+      function renderQuickPlaces() {
+        const container = document.getElementById('map-quick-places');
+        const savedHtml = state.savedPlaces.map((p, idx) => `
+          <div class="inline-flex items-center rounded-xl bg-amber-500/15 border border-amber-400/30 overflow-hidden shrink-0">
+            <button type="button" data-saved-idx="${idx}" class="px-2 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/25 whitespace-nowrap transition">
+              ★ ${escapeHtml(p.name)}
+            </button>
+            <button type="button" data-del-saved="${idx}" title="Xóa điểm đã lưu" class="px-1.5 py-1 text-[10px] text-amber-300/70 hover:text-red-300 hover:bg-red-500/20">×</button>
+          </div>
+        `).join('');
+
+        const nearbyHtml = NEARBY_CATEGORIES.map((c, idx) => `
+          <button type="button" data-nearby-idx="${idx}" class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-blue-600/30 border border-white/10 hover:border-blue-400/40 text-[11px] font-medium text-slate-200 whitespace-nowrap transition">
+            ${escapeHtml(c.label)}
+          </button>
+        `).join('');
+
+        container.innerHTML = savedHtml + nearbyHtml;
+
+        container.querySelectorAll('[data-saved-idx]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const p = state.savedPlaces[Number(btn.dataset.savedIdx)];
+            if (p) navigateToPlace(p);
+          });
+        });
+        container.querySelectorAll('[data-del-saved]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const idx = Number(btn.dataset.delSaved);
+            const removed = state.savedPlaces.splice(idx, 1)[0];
+            saveState();
+            renderQuickPlaces();
+            showToast(`Đã xóa "${removed ? removed.name : ''}" khỏi điểm đã lưu.`, 'info');
+          });
+        });
+        container.querySelectorAll('[data-nearby-idx]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const cat = NEARBY_CATEGORIES[Number(btn.dataset.nearbyIdx)];
+            if (!cat) return;
+            state.nav.active = false;
+            state.nav.nearbyQuery = cat.query;
+            renderNavHUD();
+            updateGoogleMapsFrame();
+            showToast(`Đang hiển thị ${cat.label} quanh vị trí xe trên Google Maps.`, 'info');
+          });
+        });
+      }
+
+      function hideSearchResults() {
+        const box = document.getElementById('map-search-results');
+        if (box) {
+          box.classList.add('hidden');
+          box.innerHTML = '';
+        }
+      }
+
+      function renderSearchResults(results) {
+        const box = document.getElementById('map-search-results');
+        if (!results || results.length === 0) {
+          hideSearchResults();
+          return;
+        }
+        box.innerHTML = results.map((r, idx) => {
+          const dist = haversineKm(state.gps.lat, state.gps.lng, r.lat, r.lng);
+          const distStr = dist >= 10 ? `${Math.round(dist)} km` : `${dist.toFixed(1)} km`;
+          return `
+            <button type="button" data-res-idx="${idx}" class="w-full px-3.5 py-2.5 text-left hover:bg-blue-600/25 flex items-center justify-between gap-2 transition">
+              <div class="min-w-0">
+                <div class="text-xs font-bold text-white truncate">${escapeHtml(r.name)}</div>
+                <div class="text-[11px] text-slate-400 truncate">${escapeHtml(r.address)}</div>
+              </div>
+              <span class="text-[11px] font-semibold text-blue-300 bg-blue-500/15 px-2 py-0.5 rounded-lg shrink-0">${distStr}</span>
+            </button>
+          `;
+        }).join('');
+        box.classList.remove('hidden');
+
+        box.querySelectorAll('[data-res-idx]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const chosen = results[Number(btn.dataset.resIdx)];
+            hideSearchResults();
+            if (chosen) {
+              document.getElementById('map-search-input').value = chosen.name;
+              navigateToPlace(chosen);
+            }
+          });
+        });
+      }
+
+      async function searchPlacesGlobal(query) {
+        const q = (query || '').trim();
+        if (!q) return;
+
+        // Direct coordinate input "lat, lng"
+        const coordMatch = q.match(/^(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)$/);
+        if (coordMatch) {
+          const lat = parseFloat(coordMatch[1]);
+          const lng = parseFloat(coordMatch[2]);
+          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            hideSearchResults();
+            navigateToPlace({ name: `Tọa độ ${lat.toFixed(4)}, ${lng.toFixed(4)}`, address: 'Tọa độ GPS', lat, lng });
+            return;
+          }
+        }
+
+        showToast(`Đang tìm "${q}" trên toàn cầu...`, 'info');
+        let results = [];
+
+        try {
+          const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${state.gps.lat}&lon=${state.gps.lng}&limit=6`;
+          const res = await fetch(photonUrl);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Array.isArray(data.features)) {
+              results = data.features.map((f) => {
+                const p = f.properties || {};
+                const [lon, lat] = f.geometry.coordinates;
+                const name = p.name || p.street || p.city || p.state || q;
+                const parts = [p.street, p.district, p.city || p.county, p.state, p.country].filter(Boolean);
+                return { name, address: parts.join(', ') || `${lat.toFixed(4)}, ${lon.toFixed(4)}`, lat, lng: lon };
+              });
+            }
+          }
+        } catch (e) {}
+
+        if (results.length === 0) {
+          try {
+            const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=6&q=${encodeURIComponent(q)}`;
+            const res = await fetch(nomUrl, { headers: { 'Accept-Language': 'vi,en' } });
+            if (res.ok) {
+              const data = await res.json();
+              if (Array.isArray(data)) {
+                results = data.map((item) => ({
+                  name: item.display_name.split(',')[0],
+                  address: item.display_name,
+                  lat: parseFloat(item.lat),
+                  lng: parseFloat(item.lon)
+                }));
+              }
+            }
+          } catch (e) {}
+        }
+
+        if (results.length === 0) {
+          // Even if geocoders are offline, Google Maps Embed directly accepts any text query as destination!
+          hideSearchResults();
+          navigateToPlace({ name: q, address: 'Tìm trực tiếp trên Google Maps', lat: null, lng: null });
+          return;
+        }
+
+        if (results.length === 1) {
+          hideSearchResults();
+          navigateToPlace(results[0]);
+        } else {
+          renderSearchResults(results);
+        }
+      }
+
+      async function navigateToPlace(dest) {
+        state.nav.active = true;
+        state.nav.nearbyQuery = null;
+        state.nav.destination = dest;
+
+        let distanceKm = (dest.lat && dest.lng) ? haversineKm(state.gps.lat, state.gps.lng, dest.lat, dest.lng) : 0;
+        let durationMin = distanceKm > 0 ? Math.max(2, Math.round((distanceKm / 35) * 60)) : 0;
+        let steps = [{ text: `Đi theo tuyến Google Maps đến ${dest.name}`, dist: distanceKm > 0 ? `${distanceKm.toFixed(1)} km` : 'Đang tính' }];
+
+        if (dest.lat && dest.lng) {
+          try {
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${state.gps.lng},${state.gps.lat};${dest.lng},${dest.lat}?overview=false&steps=true`;
+            const res = await fetch(osrmUrl);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.routes && data.routes.length > 0) {
+                const r = data.routes[0];
+                distanceKm = r.distance / 1000;
+                durationMin = Math.max(1, Math.round(r.duration / 60));
+                if (r.legs && r.legs[0] && Array.isArray(r.legs[0].steps)) {
+                  steps = r.legs[0].steps.slice(0, 15).map((s) => {
+                    const road = s.name ? `vào ${s.name}` : 'tiếp tục tuyến chính';
+                    const mod = s.maneuver?.modifier || '';
+                    let verb = 'Đi tiếp';
+                    if (s.maneuver?.type === 'depart') verb = 'Xuất phát';
+                    else if (s.maneuver?.type === 'arrive') verb = `Đến ${dest.name}`;
+                    else if (s.maneuver?.type === 'roundabout' || s.maneuver?.type === 'rotary') verb = 'Đi qua vòng xoay';
+                    else if (mod === 'uturn') verb = 'Quay đầu';
+                    else if (mod.includes('left')) verb = 'Rẽ trái';
+                    else if (mod.includes('right')) verb = 'Rẽ phải';
+                    const dStr = s.distance >= 1000 ? `${(s.distance / 1000).toFixed(1)} km` : `${Math.round(s.distance)} m`;
+                    return { text: s.maneuver?.type === 'arrive' ? verb : `${verb} ${road}`, dist: dStr };
+                  });
+                }
+              }
+            }
+          } catch (e) {}
+        }
+
+        state.nav.distanceKm = distanceKm;
+        state.nav.durationMin = durationMin;
+        state.nav.steps = steps;
+
+        updateGoogleMapsFrame();
+        renderNavHUD();
+        updateGpsUI();
+
+        const voiceMsg = distanceKm > 0
+          ? `Đang chỉ đường trên Google Maps đến ${dest.name}. Quãng đường ${distanceKm.toFixed(1)} kilômét, dự kiến ${durationMin} phút.`
+          : `Đang mở chỉ đường Google Maps đến ${dest.name}.`;
+        speakVietnamese(voiceMsg);
+        showToast(`Đã mở chỉ đường Google Maps đến ${dest.name}`, 'success');
+      }
+
+      function renderNavHUD() {
+        const hud = document.getElementById('nav-hud');
+        const stepsBar = document.getElementById('nav-steps-bar');
+        if (!state.nav.active || !state.nav.destination) {
+          hud.classList.add('hidden');
+          stepsBar.classList.add('hidden');
+          return;
+        }
+        hud.classList.remove('hidden');
+        stepsBar.classList.remove('hidden');
+
+        const firstStep = state.nav.steps[0] || { text: `Đi về hướng ${state.nav.destination.name}` };
+        document.getElementById('nav-hud-instruction').textContent = firstStep.text;
+        document.getElementById('nav-hud-sub').textContent = `Google Maps • Đích: ${state.nav.destination.name}`;
+        document.getElementById('nav-hud-eta').textContent = state.nav.durationMin > 0 ? `${state.nav.durationMin} phút` : 'Google Maps';
+        document.getElementById('nav-hud-dist').textContent = state.nav.distanceKm > 0 ? `${state.nav.distanceKm.toFixed(1)} km` : 'Tuyến đường';
+
+        stepsBar.innerHTML = `
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Chỉ dẫn từng chặng (Google Maps + OSRM)</div>
+          ${state.nav.steps.map((s, i) => `
+            <div class="flex items-center justify-between gap-2 py-1 border-b border-white/5 last:border-0">
+              <span class="text-slate-200 truncate"><span class="text-blue-400 font-bold mr-1.5">${i + 1}.</span>${escapeHtml(s.text)}</span>
+              <span class="text-slate-400 font-semibold shrink-0">${escapeHtml(s.dist)}</span>
+            </div>
+          `).join('')}
+        `;
+      }
+
+      function stopNavigation() {
+        state.nav.active = false;
+        state.nav.destination = null;
+        state.nav.nearbyQuery = null;
+        renderNavHUD();
+        updateGoogleMapsFrame();
+        updateGpsUI();
+        showToast('Đã kết thúc chỉ đường.', 'info');
+      }
+
+      // =========================================================
+      // 5. ACCOUNT SYNC (YOUTUBE OAUTH 2.0 & SPOTIFY OAUTH 2.0 PKCE)
+      // =========================================================
+      function openSyncModal() {
+        document.getElementById('modal-sync').classList.remove('hidden');
+        document.getElementById('input-google-client-id').value = state.auth.googleClientId || '';
+        document.getElementById('input-spotify-client-id').value = state.auth.spotifyClientId || '';
+        updateSyncStatusUI();
+      }
+
+      function closeSyncModal() {
+        document.getElementById('modal-sync').classList.add('hidden');
+      }
+
+      function updateSyncStatusUI() {
+        const ytStatus = document.getElementById('sync-yt-status');
+        const ytLogout = document.getElementById('btn-yt-logout');
+        const spStatus = document.getElementById('sync-sp-status');
+        const spLogout = document.getElementById('btn-sp-logout');
+
+        if (state.auth.ytUser) {
+          ytStatus.textContent = `Đã đồng bộ: ${state.auth.ytUser}`;
+          ytStatus.className = 'text-xs text-emerald-400 font-semibold';
+          ytLogout.classList.remove('hidden');
+        } else {
+          ytStatus.textContent = 'Chưa đăng nhập OAuth • Hỗ trợ dán Playlist cá nhân';
+          ytStatus.className = 'text-xs text-slate-400';
+          ytLogout.classList.add('hidden');
+        }
+
+        if (state.auth.spUser) {
+          spStatus.textContent = `Đã đồng bộ: ${state.auth.spUser}`;
+          spStatus.className = 'text-xs text-emerald-400 font-semibold';
+          spLogout.classList.remove('hidden');
+        } else {
+          spStatus.textContent = 'Chưa đăng nhập OAuth • Hỗ trợ dán Playlist/Album cá nhân';
+          spStatus.className = 'text-xs text-slate-400';
+          spLogout.classList.add('hidden');
+        }
+      }
+
+      function startYouTubeOAuth() {
+        const cid = document.getElementById('input-google-client-id').value.trim();
+        if (!cid) {
+          showToast('Hãy nhập Google OAuth Client ID (hoặc dán link Playlist YouTube cá nhân ở ô bên dưới).', 'warn');
+          return;
+        }
+        state.auth.googleClientId = cid;
+        saveState();
+        const redirectUri = window.location.origin + window.location.pathname;
+        if (!redirectUri.startsWith('http')) {
+          showToast('Đăng nhập OAuth cần mở file HTML qua địa chỉ http:// hoặc https:// (VD: localhost hoặc web riêng).', 'warn');
+          return;
+        }
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(cid)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent('https://www.googleapis.com/auth/youtube.readonly')}&state=yt_oauth`;
+        window.location.href = authUrl;
+      }
+
+      async function generatePKCE() {
+        const array = new Uint8Array(32);
+        crypto.getRandomValues(array);
+        const verifier = btoa(String.fromCharCode(...array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const data = new TextEncoder().encode(verifier);
+        const hash = await crypto.subtle.digest('SHA-256', data);
+        const challenge = btoa(String.fromCharCode(...new Uint8Array(hash))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        return { verifier, challenge };
+      }
+
+      async function startSpotifyOAuth() {
+        const cid = document.getElementById('input-spotify-client-id').value.trim();
+        if (!cid) {
+          showToast('Hãy nhập Spotify App Client ID (hoặc dán link Playlist Spotify cá nhân ở ô bên dưới).', 'warn');
+          return;
+        }
+        state.auth.spotifyClientId = cid;
+        saveState();
+        const redirectUri = window.location.origin + window.location.pathname;
+        if (!redirectUri.startsWith('http')) {
+          showToast('Đăng nhập OAuth Spotify cần chạy file trên http://localhost hoặc tên miền HTTPS riêng.', 'warn');
+          return;
+        }
+        try {
+          const { verifier, challenge } = await generatePKCE();
+          try { sessionStorage.setItem('sp_pkce_verifier', verifier); } catch (e) {}
+          const scopes = 'user-read-private playlist-read-private playlist-read-collaborative user-library-read';
+          const url = `https://accounts.spotify.com/authorize?client_id=${encodeURIComponent(cid)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${encodeURIComponent(challenge)}&state=sp_oauth`;
+          window.location.href = url;
+        } catch (e) {
+          showToast('Không thể khởi tạo PKCE trên trình duyệt này.', 'error');
+        }
+      }
+
+      async function handleOAuthCallbacks() {
+        // 1. Check YouTube OAuth hash token
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        if (hashParams.get('state') === 'yt_oauth' && hashParams.get('access_token')) {
+          const token = hashParams.get('access_token');
+          state.auth.ytToken = token;
+          try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
+          await syncYouTubeAccountData(token);
+        }
+
+        // 2. Check Spotify OAuth PKCE code
+        const searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.get('state') === 'sp_oauth' && searchParams.get('code') && state.auth.spotifyClientId) {
+          const code = searchParams.get('code');
+          let verifier = '';
+          try { verifier = sessionStorage.getItem('sp_pkce_verifier') || ''; } catch (e) {}
+          try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
+          if (verifier) {
+            try {
+              const redirectUri = window.location.origin + window.location.pathname;
+              const body = new URLSearchParams({
+                client_id: state.auth.spotifyClientId,
+                grant_type: 'authorization_code',
+                code,
+                redirect_uri: redirectUri,
+                code_verifier: verifier
+              });
+              const res = await fetch('https://accounts.spotify.com/api/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body
+              });
+              if (res.ok) {
+                const tok = await res.json();
+                if (tok.access_token) {
+                  state.auth.spToken = tok.access_token;
+                  await syncSpotifyAccountData(tok.access_token);
+                }
+              }
+            } catch (e) {}
+          }
+        }
+      }
+
+      async function syncYouTubeAccountData(token) {
+        try {
+          const chRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (chRes.ok) {
+            const chData = await chRes.json();
+            if (chData.items && chData.items[0]) {
+              state.auth.ytUser = chData.items[0].snippet.title;
+            }
+          }
+          const plRes = await fetch('https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=12', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (plRes.ok) {
+            const plData = await plRes.json();
+            if (plData.items && plData.items.length > 0) {
+              const personal = plData.items.map((item) => ({
+                type: 'playlist',
+                id: item.id,
+                title: `[Cá nhân] ${item.snippet.title}`,
+                channel: state.auth.ytUser || 'YouTube của tôi'
+              }));
+              state.youtubeList = [...personal, ...state.youtubeList.filter((v) => !v.title.startsWith('[Cá nhân]'))];
+              state.youtubeIndex = 0;
+              saveState();
+              updateDashYouTube();
+              showToast(`Đã đồng bộ ${personal.length} playlist YouTube cá nhân!`, 'success');
+            }
+          }
+          updateSyncStatusUI();
+        } catch (e) {
+          showToast('Không thể tải dữ liệu YouTube từ tài khoản.', 'error');
+        }
+      }
+
+      async function syncSpotifyAccountData(token) {
+        try {
+          const meRes = await fetch('https://api.spotify.com/v1/me', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (meRes.ok) {
+            const me = await meRes.json();
+            state.auth.spUser = me.display_name || me.id;
+          }
+          const plRes = await fetch('https://api.spotify.com/v1/me/playlists?limit=15', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (plRes.ok) {
+            const plData = await plRes.json();
+            if (plData.items && plData.items.length > 0) {
+              const personal = plData.items.map((item) => ({
+                type: 'playlist',
+                id: item.id,
+                title: `[Cá nhân] ${item.name}`,
+                subtitle: `${item.tracks ? item.tracks.total : 0} bài • ${state.auth.spUser || 'Spotify của tôi'}`
+              }));
+              state.spotifyList = [...personal, ...state.spotifyList.filter((p) => !p.title.startsWith('[Cá nhân]'))];
+              state.spotifyIndex = 0;
+              saveState();
+              updateDashSpotify();
+              showToast(`Đã đồng bộ ${personal.length} playlist Spotify cá nhân!`, 'success');
+            }
+          }
+          updateSyncStatusUI();
+        } catch (e) {
+          showToast('Không thể tải playlist từ tài khoản Spotify.', 'error');
+        }
+      }
+
+      // =========================================================
+      // 6. PHONE CONNECTION PROTOCOLS (BLUETOOTH / TEL HANDOFF / COMPANION)
+      // =========================================================
+      function updatePhoneConnectionUI() {
+        const headerBtn = document.getElementById('btn-header-phone-status');
+        const headerLabel = document.getElementById('header-phone-label');
+        const headerBt = document.getElementById('header-bt-icon');
+        const railBt = document.getElementById('rail-bt-icon');
+
+        if (state.phoneConn.connected) {
+          headerBtn.className = 'flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-teal-600/25 hover:bg-teal-600/40 text-teal-200 border border-teal-400/35 transition';
+          headerLabel.textContent = state.phoneConn.deviceName;
+          headerBt.setAttribute('data-lucide', 'bluetooth-connected');
+          headerBt.className = 'w-3.5 h-3.5 text-teal-300';
+          railBt.setAttribute('data-lucide', 'bluetooth-connected');
+          railBt.className = 'w-3 h-3 text-teal-400';
+        } else {
+          headerBtn.className = 'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10 transition';
+          headerLabel.textContent = 'Chưa kết nối ĐT';
+          headerBt.setAttribute('data-lucide', 'bluetooth-off');
+          headerBt.className = 'w-3.5 h-3.5 text-amber-400';
+          railBt.setAttribute('data-lucide', 'bluetooth-off');
+          railBt.className = 'w-3 h-3 text-slate-500';
+        }
+        lucide.createIcons();
+      }
+
+      async function connectViaWebBluetooth() {
+        if (!('bluetooth' in navigator)) {
+          showToast('Trình duyệt hiện tại chưa bật Web Bluetooth API (hỗ trợ tốt trên Chrome/Edge HTTPS). Hãy dùng giao thức Liên kết hệ thống (tel:) hoặc Ghép nối Mã PIN.', 'warn');
+          return;
+        }
+        try {
+          showToast('Đang mở cửa sổ quét thiết bị Bluetooth...', 'info');
+          const device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ['battery_service']
+          });
+          let battery = null;
+          try {
+            const server = await device.gatt.connect();
+            const svc = await server.getPrimaryService('battery_service');
+            const ch = await svc.getCharacteristic('battery_level');
+            const val = await ch.readValue();
+            battery = val.getUint8(0);
+          } catch (e) {}
+
+          state.phoneConn.connected = true;
+          state.phoneConn.protocol = 'bluetooth';
+          state.phoneConn.deviceName = device.name || 'Điện thoại Bluetooth';
+          state.phoneConn.battery = battery;
+
+          device.addEventListener('gattserverdisconnected', () => {
+            disconnectPhone();
+          });
+
+          updatePhoneConnectionUI();
+          renderDashboardWidgets();
+          if (state.activeView === 'phone') renderActiveAppView();
+          showToast(`Đã kết nối Bluetooth với ${state.phoneConn.deviceName}! Tính năng gọi đã mở khóa.`, 'success');
+        } catch (e) {
+          showToast('Đã hủy ghép nối Bluetooth hoặc thiết bị không cho phép truy cập.', 'warn');
+        }
+      }
+
+      function connectViaTelProtocol() {
+        state.phoneConn.connected = true;
+        state.phoneConn.protocol = 'tel_handoff';
+        state.phoneConn.deviceName = 'OS Phone Link (tel:)';
+        state.phoneConn.battery = null;
+        updatePhoneConnectionUI();
+        renderDashboardWidgets();
+        if (state.activeView === 'phone') renderActiveAppView();
+        showToast('Đã kích hoạt giao thức gọi hệ thống (tel:). Khi bấm gọi sẽ chuyển thẳng sang điện thoại/màn hình xe!', 'success');
+      }
+
+      function connectViaCompanionPin(customName) {
+        const name = (customName || '').trim() || 'Điện thoại qua Wi-Fi Companion';
+        state.phoneConn.connected = true;
+        state.phoneConn.protocol = 'companion_qr';
+        state.phoneConn.deviceName = name;
+        state.phoneConn.battery = 88;
+        updatePhoneConnectionUI();
+        renderDashboardWidgets();
+        if (state.activeView === 'phone') renderActiveAppView();
+        showToast(`Đã ghép nối "${name}" (PIN ${state.phoneConn.pairingPin}). Tính năng gọi đã mở khóa!`, 'success');
+      }
+
+      function disconnectPhone() {
+        if (state.phone.calling) endSimulatedCall();
+        state.phoneConn.connected = false;
+        state.phoneConn.protocol = null;
+        state.phoneConn.deviceName = '';
+        state.phoneConn.battery = null;
+        updatePhoneConnectionUI();
+        renderDashboardWidgets();
+        if (state.activeView === 'phone') renderActiveAppView();
+        showToast('Đã ngắt kết nối điện thoại. Tính năng gọi điện đã bị khóa.', 'info');
+      }
+
+      function triggerPhoneCall(displayName, rawNumber) {
+        if (!state.phoneConn.connected) {
+          showToast('Vui lòng kết nối điện thoại trước khi thực hiện cuộc gọi!', 'error');
+          return;
+        }
+        const cleanNum = String(rawNumber || '').replace(/[^0-9+*#]/g, '');
+        if (state.phoneConn.protocol === 'tel_handoff' && cleanNum) {
+          // Real OS tel: protocol handoff (works on Android car head units, Phone Link, iPhone Continuity)
+          const link = document.createElement('a');
+          link.href = `tel:${cleanNum}`;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        }
+        state.phone.calling = true;
+        state.phone.callName = displayName;
+        state.phone.callSeconds = 0;
+        if (callInterval) clearInterval(callInterval);
+        callInterval = setInterval(() => {
+          state.phone.callSeconds++;
+          const el = document.getElementById('phone-call-timer');
+          if (el) {
+            const mm = String(Math.floor(state.phone.callSeconds / 60)).padStart(2, '0');
+            const ss = String(state.phone.callSeconds % 60).padStart(2, '0');
+            el.textContent = `Đang gọi qua ${state.phoneConn.deviceName} • ${mm}:${ss}`;
+          }
+        }, 1000);
+        renderActiveAppView();
+      }
+
+      function endSimulatedCall() {
+        state.phone.calling = false;
+        if (callInterval) { clearInterval(callInterval); callInterval = null; }
+        showToast('Đã kết thúc cuộc gọi.', 'info');
+        if (state.activeView === 'phone') renderActiveAppView();
+      }
+
+      // =========================================================
+      // 7. YOUTUBE, SPOTIFY & AUDIO CONTROLLERS
+      // =========================================================
+      function getYouTubeEmbedUrl(item, autoplay = false) {
+        const auto = autoplay ? '&autoplay=1' : '';
+        if (item.type === 'playlist') {
+          return `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(item.id)}&rel=0&modestbranding=1${auto}`;
+        }
+        return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(item.id)}?rel=0&modestbranding=1&iv_load_policy=3${auto}`;
+      }
+
+      function updateDashYouTube() {
+        const item = state.youtubeList[state.youtubeIndex] || state.youtubeList[0];
+        if (!item) return;
+        const iframe = document.getElementById('dash-yt-iframe');
+        const targetSrc = getYouTubeEmbedUrl(item, false);
+        if (iframe && iframe.src !== targetSrc) iframe.src = targetSrc;
+        const titleEl = document.getElementById('dash-yt-title');
+        if (titleEl) titleEl.textContent = item.title;
+      }
+
+      function updateDashSpotify() {
+        const sp = state.spotifyList[state.spotifyIndex] || state.spotifyList[0];
+        if (!sp) return;
+        const iframe = document.getElementById('dash-sp-iframe');
+        const targetSrc = `https://open.spotify.com/embed/${sp.type}/${sp.id}?utm_source=generator&theme=0`;
+        if (iframe && iframe.src !== targetSrc) iframe.src = targetSrc;
+        const titleEl = document.getElementById('dash-sp-title');
+        if (titleEl) titleEl.textContent = `${sp.title} — ${sp.subtitle}`;
+      }
+
+      function setDashMediaTab(tab) {
+        state.dashMediaTab = tab;
+        const ytTab = document.getElementById('dash-tab-youtube');
+        const spTab = document.getElementById('dash-tab-spotify');
+        const ytBox = document.getElementById('dash-youtube-box');
+        const spBox = document.getElementById('dash-spotify-box');
+        if (tab === 'youtube') {
+          ytTab.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-red-600 text-white transition';
+          spTab.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white transition';
+          ytBox.classList.remove('hidden');
+          spBox.classList.add('hidden');
+        } else {
+          spTab.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-emerald-600 text-white transition';
+          ytTab.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white transition';
+          spBox.classList.remove('hidden');
+          ytBox.classList.add('hidden');
+        }
+      }
+
+      function ensureAudioCtx() {
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        return audioCtx;
+      }
+
+      function toggleChillSynth() {
+        if (state.synthPlaying) {
+          state.synthPlaying = false;
+          if (synthInterval) { clearInterval(synthInterval); synthInterval = null; }
+          if (state.activeView === 'spotify') renderActiveAppView();
+          return;
+        }
+        const ctx = ensureAudioCtx();
+        if (!ctx) return;
+        state.synthPlaying = true;
+        const chords = [[261.63, 329.63, 392.0], [220.0, 261.63, 329.63], [174.61, 220.0, 261.63], [196.0, 246.94, 293.66]];
+        let step = 0;
+        const playChord = () => {
+          if (!state.synthPlaying) return;
+          const now = ctx.currentTime;
+          chords[step % chords.length].forEach((freq) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(0.035, now + 0.35);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.2);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 2.3);
+          });
+          step++;
+        };
+        playChord();
+        if (synthInterval) clearInterval(synthInterval);
+        synthInterval = setInterval(playChord, 2400);
+        if (state.activeView === 'spotify') renderActiveAppView();
+      }
+
+      function toggleRadioAudio() {
+        if (state.radio.playing) {
+          state.radio.playing = false;
+          try { if (radioOsc) { radioOsc.stop(); radioOsc.disconnect(); radioOsc = null; } } catch (e) {}
+          if (state.activeView === 'radio') renderActiveAppView();
+          return;
+        }
+        const ctx = ensureAudioCtx();
+        if (!ctx) return;
+        const st = FM_STATIONS[state.radio.stationIndex];
+        radioOsc = ctx.createOscillator();
+        radioGain = ctx.createGain();
+        radioOsc.type = 'triangle';
+        radioOsc.frequency.setValueAtTime(st.hz, ctx.currentTime);
+        radioGain.gain.setValueAtTime(0.025, ctx.currentTime);
+        radioOsc.connect(radioGain);
+        radioGain.connect(ctx.destination);
+        radioOsc.start();
+        state.radio.playing = true;
+        if (state.activeView === 'radio') renderActiveAppView();
+      }
+
+      // =========================================================
+      // 8. MODULAR DOCK, DASHBOARD & FULL VIEWS
+      // =========================================================
+      function getEnabledFeatures() {
+        return state.features.filter((f) => f.enabled);
+      }
+
+      function renderRailApps() {
+        const rail = document.getElementById('rail-apps');
+        const enabled = getEnabledFeatures();
+        rail.innerHTML = enabled.map((f) => {
+          const isActive = state.activeView === f.id || (state.activeView === 'dashboard' && f.id === 'maps');
+          const iconHtml = f.emoji
+            ? `<span class="text-lg leading-none">${escapeHtml(f.emoji)}</span>`
+            : `<i data-lucide="${escapeHtml(f.icon || 'app-window')}" class="w-5 h-5"></i>`;
+          return `
+            <button type="button" data-open-feature="${escapeHtml(f.id)}" title="${escapeHtml(f.name)}"
+              class="dock-btn relative shrink-0 w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br ${escapeHtml(f.color)} text-white flex items-center justify-center shadow-md ${isActive ? 'ring-2 ring-white scale-105' : 'opacity-85 hover:opacity-100'}">
+              ${iconHtml}
+              ${isActive ? '<span class="hidden md:block absolute -left-2.5 w-1.5 h-5 rounded-r-full bg-white"></span>' : ''}
+            </button>
+          `;
+        }).join('');
+        rail.querySelectorAll('[data-open-feature]').forEach((b) => {
+          b.addEventListener('click', () => openFeature(b.dataset.openFeature));
+        });
+        lucide.createIcons();
+      }
+
+      function renderDashboardWidgets() {
+        const grid = document.getElementById('dash-widgets-grid');
+        const mediaCard = document.getElementById('dash-media-card');
+        const ytEnabled = state.features.some((f) => f.id === 'youtube' && f.enabled);
+        const spEnabled = state.features.some((f) => f.id === 'spotify' && f.enabled);
+
+        if (!ytEnabled && !spEnabled) {
+          mediaCard.classList.add('hidden');
+        } else {
+          mediaCard.classList.remove('hidden');
+          document.getElementById('dash-tab-youtube').classList.toggle('hidden', !ytEnabled);
+          document.getElementById('dash-tab-spotify').classList.toggle('hidden', !spEnabled);
+          if (state.dashMediaTab === 'youtube' && !ytEnabled && spEnabled) setDashMediaTab('spotify');
+          if (state.dashMediaTab === 'spotify' && !spEnabled && ytEnabled) setDashMediaTab('youtube');
+        }
+
+        const enabledIds = new Set(getEnabledFeatures().map((f) => f.id));
+        const cards = [];
+
+        if (enabledIds.has('phone')) {
+          cards.push(`
+            <button type="button" data-widget-open="phone" class="aa-card rounded-2xl p-3 text-left hover:border-teal-400/40 transition flex flex-col justify-between min-h-[96px]">
+              <div class="flex items-center justify-between ${state.phoneConn.connected ? 'text-teal-400' : 'text-amber-400'}">
+                <i data-lucide="${state.phoneConn.connected ? 'phone-call' : 'lock'}" class="w-5 h-5"></i>
+                <span class="text-[10px] font-semibold uppercase text-slate-400">Điện thoại</span>
+              </div>
+              <div class="mt-2">
+                <div class="text-sm font-bold text-white truncate">${state.phoneConn.connected ? escapeHtml(state.phoneConn.deviceName) : 'Đang khóa gọi'}</div>
+                <div class="text-[11px] ${state.phoneConn.connected ? 'text-teal-300' : 'text-amber-300'} truncate">${state.phoneConn.connected ? 'Sẵn sàng gọi điện' : 'Chạm để kết nối ĐT'}</div>
+              </div>
+            </button>
+          `);
+        }
+
+        if (enabledIds.has('weather')) {
+          cards.push(`
+            <button type="button" data-widget-open="weather" class="aa-card rounded-2xl p-3 text-left hover:border-sky-400/40 transition flex flex-col justify-between min-h-[96px]">
+              <div class="flex items-center justify-between text-sky-400">
+                <i data-lucide="cloud-sun" class="w-5 h-5"></i>
+                <span class="text-[10px] font-semibold uppercase text-slate-400">Thời tiết</span>
+              </div>
+              <div class="mt-2">
+                <div class="text-xl font-extrabold text-white">${state.weather.temp}°C</div>
+                <div class="text-[11px] text-slate-400 truncate">${escapeHtml(state.weather.desc)}</div>
+              </div>
+            </button>
+          `);
+        }
+
+        if (enabledIds.has('carstats') && cards.length < 2) {
+          cards.push(`
+            <button type="button" data-widget-open="carstats" class="aa-card rounded-2xl p-3 text-left hover:border-amber-400/40 transition flex flex-col justify-between min-h-[96px]">
+              <div class="flex items-center justify-between text-amber-400">
+                <i data-lucide="gauge" class="w-5 h-5"></i>
+                <span class="text-[10px] font-semibold uppercase text-slate-400">${escapeHtml(state.car.driveMode)}</span>
+              </div>
+              <div class="mt-2">
+                <div class="text-xl font-extrabold text-white">AC ${state.car.acLeft}°C</div>
+                <div class="text-[11px] text-slate-400 truncate">Pin ${state.car.batteryPct}% • ${state.car.tripKm} km</div>
+              </div>
+            </button>
+          `);
+        }
+
+        grid.innerHTML = cards.slice(0, 2).join('');
+        grid.querySelectorAll('[data-widget-open]').forEach((b) => {
+          b.addEventListener('click', () => openFeature(b.dataset.widgetOpen));
+        });
+        lucide.createIcons();
+      }
+
+      function openFeature(featureId) {
+        if (featureId === 'maps') {
+          state.activeView = 'dashboard';
+          state.mapExpanded = false;
+          updateLayout();
+          return;
+        }
+        state.activeView = featureId;
+        state.mapExpanded = false;
+        updateLayout();
+      }
+
+      function updateLayout() {
+        const panelMaps = document.getElementById('panel-maps');
+        const panelSec = document.getElementById('panel-secondary');
+        const viewDash = document.getElementById('view-dashboard');
+        const viewApp = document.getElementById('view-app');
+        const badge = document.getElementById('header-view-badge');
+        const homeIcon = document.getElementById('home-toggle-icon');
+        const mapsEnabled = state.features.some((f) => f.id === 'maps' && f.enabled);
+
+        if (state.activeView === 'dashboard') {
+          badge.textContent = 'Coolwalk Chia đôi';
+          homeIcon.setAttribute('data-lucide', 'layout-grid');
+          viewDash.classList.remove('hidden');
+          viewApp.classList.add('hidden');
+          if (!mapsEnabled) {
+            panelMaps.classList.add('hidden');
+            panelSec.className = 'lg:col-span-12 flex flex-col gap-2 min-h-0 overflow-y-auto';
+          } else if (state.mapExpanded) {
+            panelMaps.classList.remove('hidden');
+            panelMaps.className = 'lg:col-span-12 aa-card rounded-3xl flex flex-col overflow-hidden min-h-[340px] relative';
+            panelSec.classList.add('hidden');
+          } else {
+            panelMaps.classList.remove('hidden');
+            panelMaps.className = 'lg:col-span-7 aa-card rounded-3xl flex flex-col overflow-hidden min-h-[340px] relative';
+            panelSec.classList.remove('hidden');
+            panelSec.className = 'lg:col-span-5 flex flex-col gap-2 min-h-0 overflow-y-auto';
+          }
+        } else {
+          const feat = state.features.find((f) => f.id === state.activeView);
+          badge.textContent = state.activeView === 'launcher' ? 'Kho ứng dụng' : (feat ? feat.name : 'Ứng dụng');
+          homeIcon.setAttribute('data-lucide', 'home');
+          viewDash.classList.add('hidden');
+          viewApp.classList.remove('hidden');
+          if (mapsEnabled) {
+            panelMaps.classList.remove('hidden');
+            panelMaps.className = 'hidden lg:flex lg:col-span-5 aa-card rounded-3xl flex-col overflow-hidden min-h-[340px] relative';
+            panelSec.className = 'lg:col-span-7 flex flex-col gap-2 min-h-0 overflow-y-auto';
+          } else {
+            panelMaps.classList.add('hidden');
+            panelSec.className = 'lg:col-span-12 flex flex-col gap-2 min-h-0 overflow-y-auto';
+          }
+          renderActiveAppView();
+        }
+        renderRailApps();
+        renderDashboardWidgets();
+      }
+
+      // =========================================================
+      // 9. FULL APP VIEW RENDERERS
+      // =========================================================
+      function renderActiveAppView() {
+        const container = document.getElementById('view-app');
+        const id = state.activeView;
+
+        if (id === 'launcher') {
+          const enabled = getEnabledFeatures();
+          container.innerHTML = `
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <h2 class="text-lg font-bold text-white">Ứng dụng trên xe (${enabled.length})</h2>
+                <p class="text-xs text-slate-400">Chạm ứng dụng để mở hoặc bấm "Thêm / Xóa" để tùy biến.</p>
+              </div>
+              <button id="launcher-manage-btn" type="button" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5">
+                <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i><span>Thêm / Xóa</span>
+              </button>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+              ${enabled.map((f) => `
+                <button type="button" data-launch-id="${escapeHtml(f.id)}" class="group bg-[#0e1420] hover:bg-[#172135] border border-white/10 rounded-2xl p-4 flex flex-col items-center text-center gap-2.5 transition">
+                  <div class="w-14 h-14 rounded-2xl bg-gradient-to-br ${escapeHtml(f.color)} text-white flex items-center justify-center shadow-lg group-hover:scale-105 transition">
+                    ${f.emoji ? `<span class="text-2xl">${escapeHtml(f.emoji)}</span>` : `<i data-lucide="${escapeHtml(f.icon || 'app-window')}" class="w-7 h-7"></i>`}
+                  </div>
+                  <div>
+                    <div class="text-sm font-bold text-white">${escapeHtml(f.name)}</div>
+                    <div class="text-[11px] text-slate-400 line-clamp-1">${escapeHtml(f.desc || 'Tính năng tùy chỉnh')}</div>
+                  </div>
+                </button>
+              `).join('')}
+            </div>
+          `;
+          container.querySelectorAll('[data-launch-id]').forEach((b) => b.addEventListener('click', () => openFeature(b.dataset.launchId)));
+          document.getElementById('launcher-manage-btn').addEventListener('click', openFeatureManager);
+          lucide.createIcons();
+          return;
+        }
+
+        if (id === 'youtube') {
+          const cur = state.youtubeList[state.youtubeIndex] || state.youtubeList[0];
+          container.innerHTML = `
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2">
+                <span class="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center"><i data-lucide="play-circle" class="w-5 h-5"></i></span>
+                <div>
+                  <h2 class="text-base font-bold text-white">YouTube Không Quảng Cáo</h2>
+                  <p class="text-[11px] text-emerald-400">${state.auth.ytUser ? `Đã đồng bộ tài khoản: ${escapeHtml(state.auth.ytUser)}` : 'Hỗ trợ video lẻ & Playlist cá nhân'}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button id="yt-sync-btn" type="button" class="px-3 py-1.5 rounded-xl bg-red-600/25 hover:bg-red-600/40 text-red-200 border border-red-400/30 text-xs font-semibold">Đồng bộ tài khoản</button>
+                <button id="yt-back-dash" type="button" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white">Thu gọn</button>
+              </div>
+            </div>
+
+            <form id="yt-add-form" class="flex gap-2">
+              <input id="yt-url-input" type="text" placeholder="Dán link Video hoặc Playlist YouTube cá nhân (?list=...)..." class="flex-1 bg-[#0b0f18] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" />
+              <button type="submit" class="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shrink-0">Phát ngay</button>
+            </form>
+
+            <div class="w-full aspect-video rounded-2xl overflow-hidden bg-black border border-white/10 shrink-0">
+              <iframe class="w-full h-full" src="${escapeHtml(getYouTubeEmbedUrl(cur, true))}" title="${escapeHtml(cur.title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Danh sách phát & Playlist cá nhân (${state.youtubeList.length})</div>
+              <div class="space-y-1.5">
+                ${state.youtubeList.map((v, idx) => `
+                  <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl border ${idx === state.youtubeIndex ? 'bg-red-600/20 border-red-500/40' : 'bg-[#0c111c] border-white/5 hover:border-white/15'}">
+                    <button type="button" data-yt-play="${idx}" class="flex-1 text-left min-w-0">
+                      <div class="text-xs font-bold text-white truncate">${escapeHtml(v.title)}</div>
+                      <div class="text-[11px] text-slate-400 truncate">${v.type === 'playlist' ? 'Playlist' : 'Video'} • ${escapeHtml(v.channel)}</div>
+                    </button>
+                    ${state.youtubeList.length > 1 ? `
+                      <button type="button" data-yt-del="${idx}" class="w-7 h-7 rounded-lg bg-white/5 hover:bg-red-500/30 text-slate-400 hover:text-red-300 flex items-center justify-center shrink-0">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+          document.getElementById('yt-back-dash').addEventListener('click', () => openFeature('maps'));
+          document.getElementById('yt-sync-btn').addEventListener('click', openSyncModal);
+          document.getElementById('yt-add-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const res = extractYouTubeResource(document.getElementById('yt-url-input').value);
+            if (!res) {
+              showToast('Link YouTube chưa hợp lệ. Hãy dán link video hoặc playlist (?list=...).', 'error');
+              return;
+            }
+            state.youtubeList.unshift({
+              type: res.type,
+              id: res.id,
+              title: res.type === 'playlist' ? `[Cá nhân] Playlist YouTube (${res.id.slice(0, 8)}...)` : `Video YouTube (${res.id})`,
+              channel: 'Đã thêm bởi bạn'
+            });
+            state.youtubeIndex = 0;
+            saveState();
+            updateDashYouTube();
+            renderActiveAppView();
+            showToast('Đang phát nội dung YouTube không quảng cáo!', 'success');
+          });
+          container.querySelectorAll('[data-yt-play]').forEach((b) => b.addEventListener('click', () => {
+            state.youtubeIndex = Number(b.dataset.ytPlay);
+            updateDashYouTube();
+            renderActiveAppView();
+          }));
+          container.querySelectorAll('[data-yt-del]').forEach((b) => b.addEventListener('click', () => {
+            state.youtubeList.splice(Number(b.dataset.ytDel), 1);
+            state.youtubeIndex = Math.max(0, Math.min(state.youtubeIndex, state.youtubeList.length - 1));
+            saveState();
+            updateDashYouTube();
+            renderActiveAppView();
+          }));
+          lucide.createIcons();
+          return;
+        }
+
+        if (id === 'spotify') {
+          const cur = state.spotifyList[state.spotifyIndex] || state.spotifyList[0];
+          container.innerHTML = `
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2">
+                <span class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center"><i data-lucide="music" class="w-5 h-5"></i></span>
+                <div>
+                  <h2 class="text-base font-bold text-white">Spotify Car Player</h2>
+                  <p class="text-[11px] text-emerald-400">${state.auth.spUser ? `Đã đồng bộ tài khoản: ${escapeHtml(state.auth.spUser)}` : 'Kết nối Spotify cá nhân hoặc dán link nhạc của bạn'}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button id="sp-sync-btn" type="button" class="px-3 py-1.5 rounded-xl bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-400/30 text-xs font-semibold">Đồng bộ tài khoản</button>
+                <button id="sp-back-dash" type="button" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white">Thu gọn</button>
+              </div>
+            </div>
+
+            <form id="sp-add-form" class="flex gap-2">
+              <input id="sp-url-input" type="text" placeholder="Dán link Spotify cá nhân (playlist / track / album / artist)..." class="flex-1 bg-[#0b0f18] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500" />
+              <button type="submit" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shrink-0">Tải nhạc</button>
+            </form>
+
+            <div class="w-full h-[230px] rounded-2xl overflow-hidden bg-[#121212] border border-white/10 shrink-0">
+              <iframe class="w-full h-full" src="https://open.spotify.com/embed/${escapeHtml(cur.type)}/${escapeHtml(cur.id)}?utm_source=generator&theme=0" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+            </div>
+
+            <div class="bg-[#0c111c] border border-emerald-500/25 rounded-2xl p-3 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="flex items-end gap-0.5 h-5 w-6 ${state.synthPlaying ? '' : 'eq-paused'}">
+                  <span class="eq-bar w-1 bg-emerald-400 rounded-full"></span>
+                  <span class="eq-bar w-1 bg-emerald-400 rounded-full"></span>
+                  <span class="eq-bar w-1 bg-emerald-400 rounded-full"></span>
+                  <span class="eq-bar w-1 bg-emerald-400 rounded-full"></span>
+                </div>
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-white truncate">Chế độ Chill Synth tức thì</div>
+                  <div class="text-[11px] text-slate-400 truncate">Phát nhạc nền thư giãn không cần mạng</div>
+                </div>
+              </div>
+              <button id="sp-synth-toggle" type="button" class="px-3 py-1.5 rounded-xl ${state.synthPlaying ? 'bg-red-600 hover:bg-red-500' : 'bg-emerald-600 hover:bg-emerald-500'} text-white text-xs font-bold shrink-0">
+                ${state.synthPlaying ? 'Tắt nhạc nền' : 'Phát thử ngay'}
+              </button>
+            </div>
+
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Playlist của bạn (${state.spotifyList.length})</div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                ${state.spotifyList.map((p, idx) => `
+                  <button type="button" data-sp-play="${idx}" class="p-2.5 rounded-xl border text-left transition ${idx === state.spotifyIndex ? 'bg-emerald-600/20 border-emerald-500/50' : 'bg-[#0c111c] border-white/5 hover:border-white/20'}">
+                    <div class="text-xs font-bold text-white truncate">${escapeHtml(p.title)}</div>
+                    <div class="text-[11px] text-slate-400 truncate">${escapeHtml(p.subtitle)}</div>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+          document.getElementById('sp-back-dash').addEventListener('click', () => openFeature('maps'));
+          document.getElementById('sp-sync-btn').addEventListener('click', openSyncModal);
+          document.getElementById('sp-synth-toggle').addEventListener('click', toggleChillSynth);
+          document.getElementById('sp-add-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const parsed = extractSpotifyResource(document.getElementById('sp-url-input').value);
+            if (!parsed) {
+              showToast('Link Spotify chưa đúng định dạng (open.spotify.com/playlist/... hoặc track/...).', 'error');
+              return;
+            }
+            state.spotifyList.unshift({ type: parsed.type, id: parsed.id, title: `[Cá nhân] Spotify ${parsed.type}`, subtitle: 'Đã thêm bởi bạn' });
+            state.spotifyIndex = 0;
+            saveState();
+            updateDashSpotify();
+            renderActiveAppView();
+            showToast('Đã tải nhạc Spotify cá nhân thành công!', 'success');
+          });
+          container.querySelectorAll('[data-sp-play]').forEach((b) => b.addEventListener('click', () => {
+            state.spotifyIndex = Number(b.dataset.spPlay);
+            updateDashSpotify();
+            renderActiveAppView();
+          }));
+          lucide.createIcons();
+          return;
+        }
+
+        if (id === 'phone') {
+          if (state.phone.calling) {
+            const mm = String(Math.floor(state.phone.callSeconds / 60)).padStart(2, '0');
+            const ss = String(state.phone.callSeconds % 60).padStart(2, '0');
+            container.innerHTML = `
+              <div class="flex-1 flex flex-col items-center justify-center text-center gap-4 py-6">
+                <div class="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-300">
+                  <i data-lucide="phone-call" class="w-9 h-9"></i>
+                </div>
+                <div>
+                  <div class="text-xl font-bold text-white">${escapeHtml(state.phone.callName)}</div>
+                  <div id="phone-call-timer" class="text-sm text-emerald-400 font-semibold mt-1 tabular-nums">Đang gọi qua ${escapeHtml(state.phoneConn.deviceName)} • ${mm}:${ss}</div>
+                </div>
+                <button id="phone-hangup" type="button" class="px-6 py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm flex items-center gap-2 shadow-lg">
+                  <i data-lucide="phone-off" class="w-4 h-4"></i><span>Kết thúc cuộc gọi</span>
+                </button>
+              </div>
+            `;
+            document.getElementById('phone-hangup').addEventListener('click', endSimulatedCall);
+            lucide.createIcons();
+            return;
+          }
+
+          const connected = state.phoneConn.connected;
+          const protoLabels = {
+            bluetooth: 'Bluetooth (Web Bluetooth BLE / HFP)',
+            tel_handoff: 'Liên kết hệ thống (Giao thức tel:)',
+            companion_qr: `Wi-Fi Companion Link (PIN ${state.phoneConn.pairingPin})`
+          };
+
+          container.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="${connected ? 'phone-call' : 'lock'}" class="w-5 h-5 ${connected ? 'text-teal-400' : 'text-amber-400'}"></i>
+                <span>Điện thoại rảnh tay</span>
+              </h2>
+              <div class="flex items-center gap-1.5">
+                ${connected ? `<button id="btn-disconnect-phone" type="button" class="px-3 py-1.5 rounded-xl bg-red-600/25 hover:bg-red-600/40 text-red-200 text-xs font-semibold">Ngắt kết nối</button>` : ''}
+                <button id="ph-back" type="button" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white">Thu gọn</button>
+              </div>
+            </div>
+
+            <!-- Connection Status / Protocol Hub -->
+            ${!connected ? `
+              <div class="bg-amber-950/35 border border-amber-500/35 rounded-2xl p-4 space-y-3">
+                <div class="flex items-start gap-2.5">
+                  <i data-lucide="shield-alert" class="w-5 h-5 text-amber-400 shrink-0 mt-0.5"></i>
+                  <div>
+                    <div class="text-sm font-bold text-amber-200">Tính năng gọi đang bị khóa — Chưa kết nối điện thoại</div>
+                    <p class="text-xs text-amber-100/80 mt-0.5">Chọn 1 trong 3 giao thức kết nối chuẩn bên dưới để ghép nối điện thoại với màn hình ô tô và mở khóa gọi điện:</p>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <!-- Protocol 1: Web Bluetooth -->
+                  <div class="bg-[#0b0f18] border border-blue-500/30 rounded-2xl p-3 flex flex-col justify-between gap-2">
+                    <div>
+                      <div class="text-xs font-bold text-blue-300 flex items-center gap-1.5"><i data-lucide="bluetooth" class="w-4 h-4"></i> 1. Web Bluetooth</div>
+                      <p class="text-[11px] text-slate-400 mt-1">Quét & ghép nối thiết bị Bluetooth trực tiếp qua trình duyệt Chrome/Edge. (Âm thanh thoại HFP do Bluetooth của xe xử lý).</p>
+                    </div>
+                    <button id="btn-conn-bt" type="button" class="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold">Quét Bluetooth</button>
+                  </div>
+
+                  <!-- Protocol 2: System tel: Handoff -->
+                  <div class="bg-[#0b0f18] border border-emerald-500/30 rounded-2xl p-3 flex flex-col justify-between gap-2">
+                    <div>
+                      <div class="text-xs font-bold text-emerald-300 flex items-center gap-1.5"><i data-lucide="smartphone" class="w-4 h-4"></i> 2. Giao thức tel:</div>
+                      <p class="text-[11px] text-slate-400 mt-1">Chuyển lệnh gọi trực tiếp sang trình gọi điện của màn hình Android / Phone Link / iPhone Continuity đã ghép nối.</p>
+                    </div>
+                    <button id="btn-conn-tel" type="button" class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">Kích hoạt tel:</button>
+                  </div>
+
+                  <!-- Protocol 3: Wi-Fi Companion / WebRTC PIN -->
+                  <div class="bg-[#0b0f18] border border-indigo-500/30 rounded-2xl p-3 flex flex-col justify-between gap-2">
+                    <div>
+                      <div class="text-xs font-bold text-indigo-300 flex items-center gap-1.5"><i data-lucide="wifi" class="w-4 h-4"></i> 3. Companion PIN</div>
+                      <p class="text-[11px] text-slate-400 mt-1">Ghép nối qua Wi-Fi/Hotspot bằng mã PIN <b class="text-white">${state.phoneConn.pairingPin}</b> (giao thức WebRTC DataChannel).</p>
+                      <input id="input-companion-name" type="text" placeholder="Tên điện thoại (VD: iPhone 16)" class="mt-1.5 w-full bg-[#141c2c] border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none" />
+                    </div>
+                    <button id="btn-conn-pin" type="button" class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">Ghép nối ngay</button>
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div class="bg-teal-950/40 border border-teal-500/35 rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="w-2.5 h-2.5 rounded-full bg-teal-400 shrink-0"></span>
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold text-teal-200 truncate">Đã kết nối: ${escapeHtml(state.phoneConn.deviceName)}${state.phoneConn.battery !== null ? ` • Pin ${state.phoneConn.battery}%` : ''}</div>
+                    <div class="text-[11px] text-teal-300/80 truncate">Giao thức: ${escapeHtml(protoLabels[state.phoneConn.protocol] || '')}</div>
+                  </div>
+                </div>
+                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-200 shrink-0">Sẵn sàng gọi</span>
+              </div>
+            `}
+
+            <!-- Dialer & Contacts (Strictly Locked when not connected) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 ${connected ? '' : 'opacity-45 pointer-events-none'}">
+              <div class="space-y-2">
+                <div class="text-xs font-bold uppercase text-slate-400">Danh bạ gọi nhanh</div>
+                ${CONTACTS.map((c, i) => `
+                  <button type="button" data-call-idx="${i}" ${connected ? '' : 'disabled'} class="w-full p-2.5 rounded-xl bg-[#0c111c] hover:bg-emerald-600/20 border border-white/10 flex items-center justify-between transition">
+                    <div class="text-left">
+                      <div class="text-xs font-bold text-white">${escapeHtml(c.name)}</div>
+                      <div class="text-[11px] text-slate-400">${escapeHtml(c.display)}</div>
+                    </div>
+                    <span class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center"><i data-lucide="phone" class="w-4 h-4"></i></span>
+                  </button>
+                `).join('')}
+              </div>
+              <div class="bg-[#0c111c] border border-white/10 rounded-2xl p-3 flex flex-col gap-2">
+                <div class="flex items-center justify-between bg-[#070a10] rounded-xl px-3 py-2">
+                  <span id="dial-display" class="text-sm font-bold text-white tracking-wider min-h-[20px]">${escapeHtml(state.phone.dialNumber || 'Nhập số...')}</span>
+                  <button id="dial-del" type="button" ${connected ? '' : 'disabled'} class="text-slate-400 hover:text-white"><i data-lucide="delete" class="w-4 h-4"></i></button>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5">
+                  ${['1','2','3','4','5','6','7','8','9','*','0','#'].map((k) => `
+                    <button type="button" data-dial-key="${k}" ${connected ? '' : 'disabled'} class="py-2 rounded-xl bg-white/5 hover:bg-white/15 text-white font-bold text-sm">${k}</button>
+                  `).join('')}
+                </div>
+                <button id="dial-call-btn" type="button" ${connected ? '' : 'disabled'} class="mt-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5">
+                  <i data-lucide="phone" class="w-4 h-4"></i> Gọi ngay
+                </button>
+              </div>
+            </div>
+          `;
+
+          document.getElementById('ph-back').addEventListener('click', () => openFeature('maps'));
+          const discBtn = document.getElementById('btn-disconnect-phone');
+          if (discBtn) discBtn.addEventListener('click', disconnectPhone);
+
+          const btBtn = document.getElementById('btn-conn-bt');
+          if (btBtn) btBtn.addEventListener('click', connectViaWebBluetooth);
+          const telBtn = document.getElementById('btn-conn-tel');
+          if (telBtn) telBtn.addEventListener('click', connectViaTelProtocol);
+          const pinBtn = document.getElementById('btn-conn-pin');
+          if (pinBtn) pinBtn.addEventListener('click', () => {
+            const nm = document.getElementById('input-companion-name').value;
+            connectViaCompanionPin(nm);
+          });
+
+          container.querySelectorAll('[data-call-idx]').forEach((b) => {
+            b.addEventListener('click', () => {
+              const c = CONTACTS[Number(b.dataset.callIdx)];
+              triggerPhoneCall(`${c.name} (${c.display})`, c.phone);
+            });
+          });
+          container.querySelectorAll('[data-dial-key]').forEach((b) => {
+            b.addEventListener('click', () => {
+              state.phone.dialNumber += b.dataset.dialKey;
+              document.getElementById('dial-display').textContent = state.phone.dialNumber;
+            });
+          });
+          document.getElementById('dial-del').addEventListener('click', () => {
+            state.phone.dialNumber = state.phone.dialNumber.slice(0, -1);
+            document.getElementById('dial-display').textContent = state.phone.dialNumber || 'Nhập số...';
+          });
+          document.getElementById('dial-call-btn').addEventListener('click', () => {
+            if (!state.phone.dialNumber) {
+              showToast('Hãy nhập số điện thoại trước khi gọi.', 'warn');
+              return;
+            }
+            triggerPhoneCall(state.phone.dialNumber, state.phone.dialNumber);
+          });
+          lucide.createIcons();
+          return;
+        }
+
+        if (id === 'weather') {
+          container.innerHTML = `
+            <div class="flex items-center justify-between">
+              <h2 class="text-base font-bold text-white flex items-center gap-2"><i data-lucide="cloud-sun" class="w-5 h-5 text-sky-400"></i> Thời tiết hành trình</h2>
+              <button id="w-refresh" type="button" class="px-3 py-1.5 rounded-xl bg-sky-600/25 hover:bg-sky-600/40 text-sky-200 text-xs font-semibold">Cập nhật</button>
+            </div>
+            <div class="bg-gradient-to-br from-sky-600/30 to-indigo-900/40 border border-sky-400/25 rounded-3xl p-5 flex items-center justify-between">
+              <div>
+                <div class="text-xs text-sky-200 font-medium">${escapeHtml(state.gps.statusText)}</div>
+                <div class="text-5xl font-extrabold text-white mt-1">${state.weather.temp}°C</div>
+                <div class="text-sm text-sky-100 mt-1">${escapeHtml(state.weather.desc)}</div>
+              </div>
+              <div class="text-right space-y-1 text-xs text-sky-100">
+                <div>Tốc độ gió: <b>${state.weather.wind} km/h</b></div>
+                <div>Tọa độ: <b>${state.gps.lat.toFixed(3)}, ${state.gps.lng.toFixed(3)}</b></div>
+                <div class="text-emerald-300 font-semibold">${state.weather.loaded ? 'Dữ liệu Open-Meteo trực tiếp' : 'Đang đồng bộ...'}</div>
+              </div>
+            </div>
+          `;
+          document.getElementById('w-refresh').addEventListener('click', () => {
+            fetchWeather(state.gps.lat, state.gps.lng);
+            showToast('Đang cập nhật thời tiết tại vị trí hiện tại...', 'info');
+          });
+          lucide.createIcons();
+          return;
+        }
+
+        if (id === 'carstats') {
+          container.innerHTML = `
+            <div class="flex items-center justify-between">
+              <h2 class="text-base font-bold text-white flex items-center gap-2"><i data-lucide="gauge" class="w-5 h-5 text-amber-400"></i> Thông số xe & Điều hòa</h2>
+              <button id="cs-back" type="button" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white">Thu gọn</button>
+            </div>
+            <div class="grid grid-cols-3 gap-2.5">
+              <div class="bg-[#0c111c] border border-white/10 rounded-2xl p-3 text-center">
+                <div class="text-[11px] text-slate-400">Tốc độ GPS</div>
+                <div id="carstats-speed" class="text-3xl font-extrabold text-white mt-1 tabular-nums">${Math.round(state.gps.speedKmh)}</div>
+                <div class="text-[10px] text-amber-400 font-semibold">km/h</div>
+              </div>
+              <div class="bg-[#0c111c] border border-white/10 rounded-2xl p-3 text-center">
+                <div class="text-[11px] text-slate-400">Quãng đường</div>
+                <div class="text-2xl font-extrabold text-white mt-1.5 tabular-nums">${state.car.tripKm.toFixed(1)} km</div>
+                <button id="cs-reset-trip" type="button" class="text-[10px] text-blue-400 hover:underline mt-0.5">Đặt lại Trip</button>
+              </div>
+              <div class="bg-[#0c111c] border border-white/10 rounded-2xl p-3 text-center">
+                <div class="text-[11px] text-slate-400">Pin / Nhiên liệu</div>
+                <div class="text-2xl font-extrabold text-emerald-400 mt-1.5">${state.car.batteryPct}%</div>
+                <div class="text-[10px] text-slate-400">~310 km</div>
+              </div>
+            </div>
+            <div class="bg-[#0c111c] border border-white/10 rounded-2xl p-3.5">
+              <div class="text-xs font-bold text-slate-300 mb-2">Chế độ lái</div>
+              <div class="grid grid-cols-3 gap-2">
+                ${['Eco', 'Normal', 'Sport'].map((m) => `
+                  <button type="button" data-drive-mode="${m}" class="py-2 rounded-xl text-xs font-bold border transition ${state.car.driveMode === m ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-white/5 text-slate-300 border-white/10'}">${m}</button>
+                `).join('')}
+              </div>
+            </div>
+            <div class="bg-[#0c111c] border border-white/10 rounded-2xl p-3.5 flex items-center justify-between gap-4">
+              <div>
+                <div class="text-xs text-slate-400">Điều hòa ghế lái</div>
+                <div class="flex items-center gap-2 mt-1">
+                  <button type="button" data-ac="left-down" class="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 font-bold">-</button>
+                  <span class="text-lg font-extrabold text-white w-12 text-center">${state.car.acLeft}°C</span>
+                  <button type="button" data-ac="left-up" class="w-8 h-8 rounded-xl bg-red-500/20 text-red-300 font-bold">+</button>
+                </div>
+              </div>
+              <div>
+                <div class="text-xs text-slate-400">Điều hòa ghế phụ</div>
+                <div class="flex items-center gap-2 mt-1">
+                  <button type="button" data-ac="right-down" class="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 font-bold">-</button>
+                  <span class="text-lg font-extrabold text-white w-12 text-center">${state.car.acRight}°C</span>
+                  <button type="button" data-ac="right-up" class="w-8 h-8 rounded-xl bg-red-500/20 text-red-300 font-bold">+</button>
+                </div>
+              </div>
+            </div>
+          `;
+          document.getElementById('cs-back').addEventListener('click', () => openFeature('maps'));
+          document.getElementById('cs-reset-trip').addEventListener('click', () => { state.car.tripKm = 0; renderActiveAppView(); });
+          container.querySelectorAll('[data-drive-mode]').forEach((b) => b.addEventListener('click', () => {
+            state.car.driveMode = b.dataset.driveMode;
+            renderActiveAppView();
+          }));
+          container.querySelectorAll('[data-ac]').forEach((b) => b.addEventListener('click', () => {
+            const act = b.dataset.ac;
+            if (act === 'left-down') state.car.acLeft = Math.max(16, state.car.acLeft - 1);
+            if (act === 'left-up') state.car.acLeft = Math.min(30, state.car.acLeft + 1);
+            if (act === 'right-down') state.car.acRight = Math.max(16, state.car.acRight - 1);
+            if (act === 'right-up') state.car.acRight = Math.min(30, state.car.acRight + 1);
+            renderActiveAppView();
+          }));
+          lucide.createIcons();
+          return;
+        }
+
+        if (id === 'messages') {
+          container.innerHTML = `
+            <div class="flex items-center justify-between">
+              <h2 class="text-base font-bold text-white flex items-center gap-2"><i data-lucide="message-square" class="w-5 h-5 text-violet-400"></i> Tin nhắn rảnh tay</h2>
+              <button id="msg-back" type="button" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white">Thu gọn</button>
+            </div>
+            <div class="space-y-2.5">
+              ${state.messages.map((m, idx) => `
+                <div class="bg-[#0c111c] border border-white/10 rounded-2xl p-3.5 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-white">${escapeHtml(m.sender)}</span>
+                    <span class="text-[11px] text-slate-400">${escapeHtml(m.time)}</span>
+                  </div>
+                  <p class="text-xs text-slate-300">${escapeHtml(m.text)}</p>
+                  <div class="flex items-center gap-2 pt-1">
+                    <button type="button" data-msg-read="${idx}" class="px-3 py-1.5 rounded-xl bg-violet-600/25 hover:bg-violet-600/40 text-violet-200 text-xs font-semibold">Đọc to</button>
+                    <button type="button" data-msg-reply="${idx}" class="px-3 py-1.5 rounded-xl ${m.replied ? 'bg-emerald-600/30 text-emerald-200' : 'bg-white/10 hover:bg-white/20 text-white'} text-xs font-semibold">
+                      ${m.replied ? 'Đã trả lời: Đang lái xe' : 'Trả lời nhanh: "Đang lái xe"'}
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+          document.getElementById('msg-back').addEventListener('click', () => openFeature('maps'));
+          container.querySelectorAll('[data-msg-read]').forEach((b) => b.addEventListener('click', () => {
+            const m = state.messages[Number(b.dataset.msgRead)];
+            speakVietnamese(`Tin nhắn từ ${m.sender}: ${m.text}`);
+          }));
+          container.querySelectorAll('[data-msg-reply]').forEach((b) => b.addEventListener('click', () => {
+            state.messages[Number(b.dataset.msgReply)].replied = true;
+            renderActiveAppView();
+          }));
+          lucide.createIcons();
+          return;
+        }
+
+        if (id === 'radio') {
+          const st = FM_STATIONS[state.radio.stationIndex];
+          container.innerHTML = `
+            <div class="flex items-center justify-between">
+              <h2 class="text-base font-bold text-white flex items-center gap-2"><i data-lucide="radio" class="w-5 h-5 text-pink-400"></i> FM Radio</h2>
+              <button id="rad-back" type="button" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white">Thu gọn</button>
+            </div>
+            <div class="bg-gradient-to-br from-pink-600/25 to-purple-900/30 border border-pink-400/25 rounded-3xl p-5 text-center space-y-2">
+              <div class="text-4xl font-extrabold text-white">${escapeHtml(st.freq)}</div>
+              <div class="text-sm text-pink-200 font-semibold">${escapeHtml(st.name)}</div>
+              <button id="rad-play-btn" type="button" class="mt-2 px-5 py-2.5 rounded-2xl ${state.radio.playing ? 'bg-red-600' : 'bg-pink-600'} text-white font-bold text-xs">
+                ${state.radio.playing ? 'Tắt sóng FM' : 'Bật sóng FM'}
+              </button>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              ${FM_STATIONS.map((s, idx) => `
+                <button type="button" data-fm-idx="${idx}" class="p-3 rounded-2xl border text-left ${idx === state.radio.stationIndex ? 'bg-pink-600/25 border-pink-400/50' : 'bg-[#0c111c] border-white/10'}">
+                  <div class="text-sm font-bold text-white">${escapeHtml(s.freq)}</div>
+                  <div class="text-[11px] text-slate-400 truncate">${escapeHtml(s.name)}</div>
+                </button>
+              `).join('')}
+            </div>
+          `;
+          document.getElementById('rad-back').addEventListener('click', () => openFeature('maps'));
+          document.getElementById('rad-play-btn').addEventListener('click', toggleRadioAudio);
+          container.querySelectorAll('[data-fm-idx]').forEach((b) => b.addEventListener('click', () => {
+            state.radio.stationIndex = Number(b.dataset.fmIdx);
+            if (state.radio.playing) { toggleRadioAudio(); toggleRadioAudio(); } else { renderActiveAppView(); }
+          }));
+          lucide.createIcons();
+          return;
+        }
+
+        // Custom Feature View
+        const cf = state.features.find((f) => f.id === id);
+        if (cf) {
+          let bodyHtml = '';
+          if (cf.customType === 'embed') {
+            const safeUrl = (cf.payload || '').startsWith('https://') ? cf.payload : '';
+            bodyHtml = safeUrl
+              ? `<div class="flex-1 min-h-[280px] rounded-2xl overflow-hidden bg-white border border-white/10"><iframe class="w-full h-full min-h-[280px]" src="${escapeHtml(safeUrl)}" title="${escapeHtml(cf.name)}" frameborder="0"></iframe></div>`
+              : `<div class="p-4 rounded-2xl bg-[#0c111c] border border-white/10 text-xs text-amber-300">URL cần bắt đầu bằng https://.</div>`;
+          } else if (cf.customType === 'checklist') {
+            const items = (cf.payload || 'Kiểm tra áp suất lốp\nKiểm tra nhiên liệu\nThắt dây an toàn').split('\n').filter(Boolean);
+            bodyHtml = `<div class="space-y-2">${items.map((item) => `<label class="flex items-center gap-3 p-3 rounded-xl bg-[#0c111c] border border-white/10 cursor-pointer"><input type="checkbox" class="w-4 h-4 accent-indigo-500" /><span class="text-xs text-slate-200">${escapeHtml(item)}</span></label>`).join('')}</div>`;
+          } else {
+            bodyHtml = `<textarea id="custom-note-area" rows="8" class="w-full bg-[#0c111c] border border-white/10 rounded-2xl p-3.5 text-sm text-white focus:outline-none">${escapeHtml(cf.payload || '')}</textarea><button id="custom-note-save" type="button" class="self-end px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold">Lưu ghi chú</button>`;
+          }
+          container.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5">
+                <span class="w-10 h-10 rounded-2xl bg-gradient-to-br ${escapeHtml(cf.color)} flex items-center justify-center text-xl">${escapeHtml(cf.emoji || '✨')}</span>
+                <div><h2 class="text-base font-bold text-white">${escapeHtml(cf.name)}</h2><p class="text-[11px] text-indigo-300">Tính năng tùy chỉnh</p></div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button id="custom-delete-btn" type="button" class="px-3 py-1.5 rounded-xl bg-red-600/20 text-red-300 text-xs font-semibold">Xóa</button>
+                <button id="custom-back-btn" type="button" class="px-3 py-1.5 rounded-xl bg-white/10 text-xs font-semibold text-white">Thu gọn</button>
+              </div>
+            </div>
+            ${bodyHtml}
+          `;
+          document.getElementById('custom-back-btn').addEventListener('click', () => openFeature('maps'));
+          document.getElementById('custom-delete-btn').addEventListener('click', () => {
+            state.features = state.features.filter((f) => f.id !== cf.id);
+            saveState();
+            openFeature('maps');
+          });
+          const sn = document.getElementById('custom-note-save');
+          if (sn) sn.addEventListener('click', () => { cf.payload = document.getElementById('custom-note-area').value; saveState(); showToast('Đã lưu ghi chú!', 'success'); });
+          lucide.createIcons();
+        }
+      }
+
+      // =========================================================
+      // 10. FEATURE MANAGER & ASSISTANT
+      // =========================================================
+      function openFeatureManager() {
+        document.getElementById('modal-manager').classList.remove('hidden');
+        renderFeatureManagerLists();
+      }
+      function closeFeatureManager() {
+        document.getElementById('modal-manager').classList.add('hidden');
+      }
+
+      function renderFeatureManagerLists() {
+        const builtinList = document.getElementById('manager-builtin-list');
+        const customSec = document.getElementById('manager-custom-section');
+        const customList = document.getElementById('manager-custom-list');
+        document.getElementById('manager-count-badge').textContent = `${getEnabledFeatures().length} đang bật`;
+
+        const builtins = state.features.filter((f) => f.builtin);
+        const customs = state.features.filter((f) => !f.builtin);
+
+        builtinList.innerHTML = builtins.map((f) => `
+          <div class="flex items-center justify-between gap-2.5 p-3 rounded-2xl border ${f.enabled ? 'bg-[#172033] border-indigo-500/35' : 'bg-[#0c101a] border-white/5 opacity-70'}">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-9 h-9 rounded-xl bg-gradient-to-br ${escapeHtml(f.color)} text-white flex items-center justify-center shrink-0"><i data-lucide="${escapeHtml(f.icon)}" class="w-4 h-4"></i></div>
+              <div class="min-w-0"><div class="text-xs font-bold text-white truncate">${escapeHtml(f.name)}</div><div class="text-[11px] text-slate-400 truncate">${escapeHtml(f.desc)}</div></div>
+            </div>
+            <button type="button" data-toggle-feat="${escapeHtml(f.id)}" class="px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 ${f.enabled ? 'bg-red-500/20 text-red-300' : 'bg-emerald-600 text-white'}">${f.enabled ? 'Xóa' : 'Thêm'}</button>
+          </div>
+        `).join('');
+
+        if (customs.length > 0) {
+          customSec.classList.remove('hidden');
+          customList.innerHTML = customs.map((f) => `
+            <div class="flex items-center justify-between gap-2.5 p-3 rounded-2xl border bg-[#172033] border-indigo-500/35">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br ${escapeHtml(f.color)} text-white flex items-center justify-center text-base shrink-0">${escapeHtml(f.emoji || '✨')}</div>
+                <div class="min-w-0"><div class="text-xs font-bold text-white truncate">${escapeHtml(f.name)}</div><div class="text-[11px] text-indigo-300 truncate">Tính năng tùy chỉnh</div></div>
+              </div>
+              <button type="button" data-remove-custom="${escapeHtml(f.id)}" class="px-3 py-1.5 rounded-xl bg-red-600/25 text-red-300 text-xs font-bold shrink-0">Xóa hẳn</button>
+            </div>
+          `).join('');
+        } else {
+          customSec.classList.add('hidden');
+        }
+
+        builtinList.querySelectorAll('[data-toggle-feat]').forEach((b) => b.addEventListener('click', () => {
+          const t = state.features.find((x) => x.id === b.dataset.toggleFeat);
+          if (!t) return;
+          t.enabled = !t.enabled;
+          if (!t.enabled && state.activeView === t.id) state.activeView = 'dashboard';
+          saveState();
+          renderFeatureManagerLists();
+          updateLayout();
+        }));
+        customList.querySelectorAll('[data-remove-custom]').forEach((b) => b.addEventListener('click', () => {
+          state.features = state.features.filter((x) => x.id !== b.dataset.removeCustom);
+          if (state.activeView === b.dataset.removeCustom) state.activeView = 'dashboard';
+          saveState();
+          renderFeatureManagerLists();
+          updateLayout();
+        }));
+        lucide.createIcons();
+      }
+
+      function handleVoiceCommand(cmd) {
+        const lower = (cmd || '').toLowerCase();
+        document.getElementById('assistant-transcript').textContent = `"${cmd}"`;
+        if (lower.includes('youtube')) { closeAssistant(); openFeature('youtube'); }
+        else if (lower.includes('spotify') || lower.includes('nhạc')) { closeAssistant(); openFeature('spotify'); }
+        else if (lower.includes('điện thoại') || lower.includes('gọi')) { closeAssistant(); openFeature('phone'); }
+        else if (lower.includes('gần đây')) {
+          const q = cmd.replace(/tìm|gần đây|quanh đây/gi, '').trim() || 'trạm xăng';
+          closeAssistant(); openFeature('maps');
+          state.nav.active = false; state.nav.nearbyQuery = q;
+          renderNavHUD(); updateGoogleMapsFrame();
+        } else if (lower.includes('chỉ đường') || lower.includes('đến')) {
+          const place = cmd.replace(/chỉ đường|đến|đi|tới/gi, '').trim();
+          closeAssistant(); openFeature('maps');
+          if (place) searchPlacesGlobal(place);
+        }
+      }
+
+      function closeAssistant() {
+        document.getElementById('modal-assistant').classList.add('hidden');
+        document.getElementById('assistant-orb').classList.remove('listening-pulse');
+      }
+
+      // =========================================================
+      // 11. EVENT BINDINGS & BOOT
+      // =========================================================
+      function bindEvents() {
+        document.getElementById('btn-open-manager').addEventListener('click', openFeatureManager);
+        document.getElementById('btn-header-add-feature').addEventListener('click', openFeatureManager);
+        document.getElementById('btn-close-manager').addEventListener('click', closeFeatureManager);
+        document.getElementById('modal-manager').addEventListener('click', (e) => { if (e.target.id === 'modal-manager') closeFeatureManager(); });
+
+        document.getElementById('btn-open-sync').addEventListener('click', openSyncModal);
+        document.getElementById('btn-close-sync').addEventListener('click', closeSyncModal);
+        document.getElementById('modal-sync').addEventListener('click', (e) => { if (e.target.id === 'modal-sync') closeSyncModal(); });
+        document.getElementById('btn-yt-oauth').addEventListener('click', startYouTubeOAuth);
+        document.getElementById('btn-sp-oauth').addEventListener('click', startSpotifyOAuth);
+        document.getElementById('btn-yt-logout').addEventListener('click', () => {
+          state.auth.ytUser = null; state.auth.ytToken = null; updateSyncStatusUI(); showToast('Đã đăng xuất YouTube.', 'info');
+        });
+        document.getElementById('btn-sp-logout').addEventListener('click', () => {
+          state.auth.spUser = null; state.auth.spToken = null; updateSyncStatusUI(); showToast('Đã đăng xuất Spotify.', 'info');
+        });
+
+        document.getElementById('btn-sp-reload').addEventListener('click', () => {
+          const sp = state.spotifyList[state.spotifyIndex] || state.spotifyList[0];
+          const iframe = document.getElementById('dash-sp-iframe');
+          if (iframe && sp) {
+            iframe.src = `https://open.spotify.com/embed/${sp.type}/${sp.id}?utm_source=generator&theme=0&_t=${Date.now()}`;
+          }
+          if (state.activeView === 'spotify') renderActiveAppView();
+          showToast('Đã làm mới trình phát Spotify theo phiên đăng nhập mới!', 'success');
+        });
+
+        document.getElementById('form-sync-yt-playlist').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const customName = document.getElementById('input-sync-yt-name').value.trim();
+          const res = extractYouTubeResource(document.getElementById('input-sync-yt-pl').value);
+          if (!res) { showToast('Link YouTube chưa hợp lệ.', 'error'); return; }
+          const label = customName || (res.type === 'playlist' ? 'Playlist YouTube cá nhân' : `Video (${res.id})`);
+          state.youtubeList.unshift({
+            type: res.type, id: res.id,
+            title: `[Cá nhân] ${label}`,
+            channel: 'Thư viện của bạn'
+          });
+          state.youtubeIndex = 0;
+          saveState(); updateDashYouTube();
+          document.getElementById('input-sync-yt-name').value = '';
+          document.getElementById('input-sync-yt-pl').value = '';
+          closeSyncModal();
+          setDashMediaTab('youtube');
+          if (state.activeView === 'youtube') renderActiveAppView();
+          showToast(`Đã lưu "${label}" và phát không quảng cáo!`, 'success');
+        });
+
+        document.getElementById('form-sync-sp-playlist').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const customName = document.getElementById('input-sync-sp-name').value.trim();
+          const parsed = extractSpotifyResource(document.getElementById('input-sync-sp-pl').value);
+          if (!parsed) { showToast('Link Spotify chưa đúng định dạng.', 'error'); return; }
+          const label = customName || `Spotify ${parsed.type} cá nhân`;
+          state.spotifyList.unshift({
+            type: parsed.type, id: parsed.id,
+            title: `[Cá nhân] ${label}`,
+            subtitle: 'Thư viện của bạn'
+          });
+          state.spotifyIndex = 0;
+          saveState(); updateDashSpotify();
+          document.getElementById('input-sync-sp-name').value = '';
+          document.getElementById('input-sync-sp-pl').value = '';
+          closeSyncModal();
+          setDashMediaTab('spotify');
+          if (state.activeView === 'spotify') renderActiveAppView();
+          showToast(`Đã lưu "${label}" vào thư viện Spotify!`, 'success');
+        });
+
+        document.getElementById('btn-header-phone-status').addEventListener('click', () => openFeature('phone'));
+
+        document.getElementById('form-add-feature').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const name = document.getElementById('new-feat-name').value.trim();
+          if (!name) return;
+          state.features.push({
+            id: 'custom_' + Date.now(),
+            name,
+            desc: 'Tính năng tùy chỉnh',
+            emoji: document.getElementById('new-feat-emoji').value.trim() || '🚗',
+            color: document.getElementById('new-feat-color').value,
+            customType: document.getElementById('new-feat-type').value,
+            payload: document.getElementById('new-feat-payload').value.trim(),
+            enabled: true,
+            builtin: false
+          });
+          saveState();
+          document.getElementById('form-add-feature').reset();
+          document.getElementById('new-feat-emoji').value = '🚗';
+          renderFeatureManagerLists();
+          updateLayout();
+          showToast(`Đã thêm "${name}" vào Android Auto!`, 'success');
+        });
+
+        document.getElementById('btn-reset-features').addEventListener('click', () => {
+          state.features = JSON.parse(JSON.stringify(DEFAULT_FEATURES));
+          state.activeView = 'dashboard';
+          saveState(); renderFeatureManagerLists(); updateLayout();
+        });
+
+        document.getElementById('btn-home-toggle').addEventListener('click', () => {
+          state.activeView = state.activeView === 'dashboard' ? 'launcher' : 'dashboard';
+          updateLayout();
+        });
+
+        // Google Maps controls
+        document.getElementById('btn-quick-gps').addEventListener('click', () => requestDeviceGPS(true));
+        document.getElementById('btn-locate-me').addEventListener('click', () => requestDeviceGPS(true));
+        document.getElementById('btn-stop-nav').addEventListener('click', stopNavigation);
+        document.getElementById('btn-map-style').addEventListener('click', () => {
+          state.mapStyleIndex = (state.mapStyleIndex + 1) % GOOGLE_MAP_STYLES.length;
+          updateGoogleMapsFrame();
+        });
+        document.getElementById('btn-voice-nav').addEventListener('click', () => {
+          state.voiceNavEnabled = !state.voiceNavEnabled;
+          document.getElementById('voice-nav-label').textContent = state.voiceNavEnabled ? 'Giọng nói: Bật' : 'Giọng nói: Tắt';
+        });
+        document.getElementById('btn-map-expand').addEventListener('click', () => {
+          state.activeView = 'dashboard';
+          state.mapExpanded = !state.mapExpanded;
+          updateLayout();
+        });
+        document.getElementById('map-search-form').addEventListener('submit', (e) => {
+          e.preventDefault();
+          searchPlacesGlobal(document.getElementById('map-search-input').value);
+        });
+        document.getElementById('btn-save-place').addEventListener('click', () => {
+          const target = state.nav.active && state.nav.destination
+            ? state.nav.destination
+            : { name: `Vị trí (${state.gps.lat.toFixed(3)}, ${state.gps.lng.toFixed(3)})`, address: state.gps.statusText, lat: state.gps.lat, lng: state.gps.lng };
+          if (state.savedPlaces.some((p) => p.name === target.name)) {
+            showToast(`"${target.name}" đã được lưu trước đó.`, 'info');
+            return;
+          }
+          state.savedPlaces.unshift({ name: target.name, address: target.address || '', lat: target.lat, lng: target.lng });
+          if (state.savedPlaces.length > 8) state.savedPlaces.pop();
+          saveState(); renderQuickPlaces();
+          showToast(`Đã lưu "${target.name}" vào lối tắt chỉ đường!`, 'success');
+        });
+        document.addEventListener('click', (e) => {
+          const form = document.getElementById('map-search-form');
+          const box = document.getElementById('map-search-results');
+          if (form && box && !form.contains(e.target) && !box.contains(e.target)) hideSearchResults();
+        });
+
+        // Media controls
+        document.getElementById('dash-tab-youtube').addEventListener('click', () => setDashMediaTab('youtube'));
+        document.getElementById('dash-tab-spotify').addEventListener('click', () => setDashMediaTab('spotify'));
+        document.getElementById('btn-expand-media').addEventListener('click', () => openFeature(state.dashMediaTab));
+        document.getElementById('dash-yt-prev').addEventListener('click', () => {
+          state.youtubeIndex = (state.youtubeIndex - 1 + state.youtubeList.length) % state.youtubeList.length;
+          updateDashYouTube();
+        });
+        document.getElementById('dash-yt-next').addEventListener('click', () => {
+          state.youtubeIndex = (state.youtubeIndex + 1) % state.youtubeList.length;
+          updateDashYouTube();
+        });
+        document.getElementById('dash-sp-next').addEventListener('click', () => {
+          state.spotifyIndex = (state.spotifyIndex + 1) % state.spotifyList.length;
+          updateDashSpotify();
+        });
+
+        // Assistant
+        document.getElementById('btn-assistant').addEventListener('click', () => document.getElementById('modal-assistant').classList.remove('hidden'));
+        document.getElementById('btn-close-assistant').addEventListener('click', closeAssistant);
+        document.getElementById('modal-assistant').addEventListener('click', (e) => { if (e.target.id === 'modal-assistant') closeAssistant(); });
+        document.querySelectorAll('.voice-chip').forEach((c) => c.addEventListener('click', () => handleVoiceCommand(c.dataset.voiceCmd)));
+        document.getElementById('btn-start-speech').addEventListener('click', () => {
+          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SR) { showToast('Trình duyệt không hỗ trợ nhận diện giọng nói.', 'warn'); return; }
+          const rec = new SR();
+          rec.lang = 'vi-VN';
+          document.getElementById('assistant-orb').classList.add('listening-pulse');
+          rec.onresult = (ev) => handleVoiceCommand(ev.results[0][0].transcript);
+          rec.onend = () => document.getElementById('assistant-orb').classList.remove('listening-pulse');
+          rec.start();
+        });
+
+        document.getElementById('btn-fullscreen').addEventListener('click', () => {
+          try {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+          } catch (e) {}
+        });
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        updateClock();
+        setInterval(updateClock, 15000);
+        bindEvents();
+        renderQuickPlaces();
+        updateGoogleMapsFrame();
+        updateGpsUI();
+        updatePhoneConnectionUI();
+        requestDeviceGPS(true);
+        handleOAuthCallbacks();
+        updateDashYouTube();
+        updateDashSpotify();
+        updateLayout();
+        lucide.createIcons();
+      });
+    })();
+  </script>
+</body>
+</html>
