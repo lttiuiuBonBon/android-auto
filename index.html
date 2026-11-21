@@ -74,7 +74,7 @@
         <div id="rail-clock" class="text-sm md:text-base font-bold tracking-tight text-white tabular-nums">--:--</div>
         <div class="hidden md:flex items-center gap-1 text-[10px] text-slate-400">
           <span id="rail-gps-dot" class="w-2 h-2 rounded-full bg-amber-400" title="Trạng thái GPS"></span>
-          <i id="rail-bt-icon" data-lucide="bluetooth-off" class="w-3 h-3 text-slate-500"></i>
+          <span id="rail-bt-slot" class="inline-flex items-center"><i data-lucide="bluetooth-off" class="w-3 h-3 text-slate-500"></i></span>
           <i data-lucide="battery-charging" class="w-3 h-3 text-emerald-400"></i>
         </div>
       </div>
@@ -93,7 +93,7 @@
           </span>
         </button>
         <button id="btn-home-toggle" type="button" title="Màn hình chính Coolwalk / Kho ứng dụng" class="dock-btn w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
-          <i id="home-toggle-icon" data-lucide="layout-grid" class="w-5 h-5"></i>
+          <span id="home-toggle-slot" class="inline-flex items-center"><i data-lucide="layout-grid" class="w-5 h-5"></i></span>
         </button>
       </div>
     </aside>
@@ -110,7 +110,7 @@
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           <button id="btn-header-phone-status" type="button" class="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10 transition">
-            <i id="header-bt-icon" data-lucide="bluetooth-off" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span id="header-bt-slot" class="inline-flex items-center"><i data-lucide="bluetooth-off" class="w-3.5 h-3.5 text-amber-400"></i></span>
             <span id="header-phone-label" class="hidden md:inline">Chưa kết nối ĐT</span>
           </button>
           <button id="btn-open-sync" type="button" class="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-300 border border-emerald-500/30 transition">
@@ -301,16 +301,16 @@
     </main>
   </div>
 
-  <!-- MODAL: Đăng nhập nhanh & Thư viện cá nhân YouTube / Spotify -->
+  <!-- MODAL: Đồng bộ YouTube & Spotify bằng OAuth 2.0 Client ID -->
   <div id="modal-sync" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3">
     <div class="bg-[#121826] border border-white/15 rounded-3xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
       <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <div>
           <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-            <i data-lucide="user-check" class="w-5 h-5 text-emerald-400"></i>
-            <span>Đăng nhập nhanh & Playlist cá nhân</span>
+            <i data-lucide="key-round" class="w-5 h-5 text-emerald-400"></i>
+            <span>Đăng nhập YouTube &amp; Spotify (OAuth 2.0 Client ID)</span>
           </h2>
-          <p class="text-xs text-slate-400 mt-0.5">Đăng nhập 1 chạm trên trình duyệt xe (không cần Client ID) và lưu sẵn các Playlist yêu thích của riêng bạn.</p>
+          <p class="text-xs text-slate-400 mt-0.5">Nhập Client ID để tự động tải toàn bộ Playlist &amp; Video/Bài hát đã thích từ tài khoản cá nhân của bạn.</p>
         </div>
         <button id="btn-close-sync" type="button" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -318,79 +318,72 @@
       </div>
 
       <div class="p-4 sm:p-5 overflow-y-auto space-y-4">
-        <!-- YouTube Simple Login + Named Playlist -->
-        <div class="bg-[#0b0f18] border border-red-500/25 rounded-2xl p-4 space-y-3">
+        <!-- Current Redirect URI Copy Box -->
+        <div class="bg-blue-950/40 border border-blue-500/30 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="min-w-0">
+            <div class="text-[11px] font-bold text-blue-300 uppercase tracking-wider">Redirect URI cần dán vào Google Cloud &amp; Spotify Dashboard</div>
+            <div id="oauth-redirect-uri" class="text-xs text-white font-mono truncate mt-0.5">--</div>
+          </div>
+          <button id="btn-copy-redirect-uri" type="button" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shrink-0 transition">Sao chép URI</button>
+        </div>
+
+        <!-- YouTube OAuth 2.0 Card -->
+        <div class="bg-[#0b0f18] border border-red-500/30 rounded-2xl p-4 space-y-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2.5">
               <span class="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center"><i data-lucide="play-circle" class="w-5 h-5"></i></span>
               <div>
-                <div class="text-sm font-bold text-white">YouTube cá nhân (Không quảng cáo)</div>
-                <div id="sync-yt-status" class="text-xs text-slate-400">Đăng nhập trình duyệt hoặc lưu Playlist yêu thích</div>
+                <div class="text-sm font-bold text-white">YouTube — Google OAuth 2.0</div>
+                <div id="sync-yt-status" class="text-xs text-slate-400">Chưa đăng nhập OAuth • Tự tải Playlist &amp; Video đã thích</div>
               </div>
             </div>
             <div class="flex items-center gap-1.5">
-              <a href="https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fwww.youtube.com%2F" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
-                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                <span>Đăng nhập YouTube</span>
-              </a>
-              <button id="btn-yt-logout" type="button" class="hidden px-2.5 py-1.5 rounded-xl bg-white/10 text-red-300 text-xs font-semibold">Đăng xuất</button>
+              <button id="btn-yt-toggle-mode" type="button" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-amber-200 text-[11px] font-semibold">Chế độ: No-Ads</button>
+              <button id="btn-yt-logout" type="button" class="hidden px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold">Đăng xuất</button>
             </div>
           </div>
 
-          <form id="form-sync-yt-playlist" class="grid grid-cols-1 sm:grid-cols-12 gap-2">
-            <input id="input-sync-yt-name" type="text" placeholder="Tên gợi nhớ (VD: Nhạc đi đường dài)" class="sm:col-span-4 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400" />
-            <input id="input-sync-yt-pl" type="text" required placeholder="Dán link Playlist (?list=...) hoặc Video YouTube" class="sm:col-span-6 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400" />
-            <button type="submit" class="sm:col-span-2 px-3 py-2 rounded-xl bg-red-600/85 hover:bg-red-500 text-white text-xs font-bold transition">Lưu</button>
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <input id="input-google-client-id" type="text" placeholder="Dán Google OAuth Client ID (xxxx.apps.googleusercontent.com)" class="sm:col-span-8 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400" />
+            <button id="btn-yt-oauth" type="button" class="sm:col-span-4 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition">Đăng nhập YouTube</button>
+          </div>
+
+          <form id="form-sync-yt-playlist" class="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1 border-t border-white/5">
+            <input id="input-sync-yt-name" type="text" placeholder="Tên Playlist (tùy chọn)" class="sm:col-span-4 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-red-400" />
+            <input id="input-sync-yt-pl" type="text" required placeholder="Hoặc dán nhanh link Playlist / Video YouTube" class="sm:col-span-6 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-red-400" />
+            <button type="submit" class="sm:col-span-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold">Lưu</button>
           </form>
         </div>
 
-        <!-- Spotify Simple Login + Named Playlist -->
-        <div class="bg-[#0b0f18] border border-emerald-500/25 rounded-2xl p-4 space-y-3">
+        <!-- Spotify OAuth 2.0 PKCE Card -->
+        <div class="bg-[#0b0f18] border border-emerald-500/30 rounded-2xl p-4 space-y-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2.5">
               <span class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center"><i data-lucide="music" class="w-5 h-5"></i></span>
               <div>
-                <div class="text-sm font-bold text-white">Spotify cá nhân</div>
-                <div id="sync-sp-status" class="text-xs text-slate-400">Đăng nhập 1 chạm để nghe trọn bài Premium</div>
+                <div class="text-sm font-bold text-white">Spotify — OAuth 2.0 PKCE</div>
+                <div id="sync-sp-status" class="text-xs text-slate-400">Chưa đăng nhập OAuth • Tự tải Playlist &amp; Bài hát đã thích</div>
               </div>
             </div>
             <div class="flex items-center gap-1.5">
-              <a href="https://accounts.spotify.com/login?continue=https%3A%2F%2Fopen.spotify.com%2F" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
-                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                <span>Đăng nhập Spotify</span>
-              </a>
-              <button id="btn-sp-reload" type="button" title="Làm mới trình phát sau khi đăng nhập xong" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-emerald-200 text-xs font-semibold flex items-center gap-1">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Làm mới</span>
+              <button id="btn-sp-reload" type="button" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-emerald-200 text-xs font-semibold flex items-center gap-1">
+                <i data-lucide="refresh-cw" class="w-3 h-3"></i><span>Làm mới</span>
               </button>
-              <button id="btn-sp-logout" type="button" class="hidden px-2.5 py-1.5 rounded-xl bg-white/10 text-red-300 text-xs font-semibold">Đăng xuất</button>
+              <button id="btn-sp-logout" type="button" class="hidden px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold">Đăng xuất</button>
             </div>
           </div>
 
-          <form id="form-sync-sp-playlist" class="grid grid-cols-1 sm:grid-cols-12 gap-2">
-            <input id="input-sync-sp-name" type="text" placeholder="Tên gợi nhớ (VD: Nhạc chill tối)" class="sm:col-span-4 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400" />
-            <input id="input-sync-sp-pl" type="text" required placeholder="Dán link Playlist / Album / Bài hát Spotify" class="sm:col-span-6 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400" />
-            <button type="submit" class="sm:col-span-2 px-3 py-2 rounded-xl bg-emerald-600/85 hover:bg-emerald-500 text-white text-xs font-bold transition">Lưu</button>
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <input id="input-spotify-client-id" type="text" placeholder="Dán Spotify App Client ID (từ developer.spotify.com)" class="sm:col-span-8 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400" />
+            <button id="btn-sp-oauth" type="button" class="sm:col-span-4 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">Đăng nhập Spotify</button>
+          </div>
+
+          <form id="form-sync-sp-playlist" class="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1 border-t border-white/5">
+            <input id="input-sync-sp-name" type="text" placeholder="Tên Playlist (tùy chọn)" class="sm:col-span-4 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-400" />
+            <input id="input-sync-sp-pl" type="text" required placeholder="Hoặc dán nhanh link Playlist / Track / Album Spotify" class="sm:col-span-6 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-400" />
+            <button type="submit" class="sm:col-span-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold">Lưu</button>
           </form>
         </div>
-
-        <!-- Collapsible Advanced OAuth (Hidden by default for simplicity) -->
-        <details class="bg-[#0b0f18] border border-white/10 rounded-2xl p-3.5">
-          <summary class="cursor-pointer text-xs font-bold text-slate-300 hover:text-white flex items-center justify-between">
-            <span>⚙️ Tùy chọn nâng cao: Tự động đồng bộ OAuth Client ID (dành cho web tự host)</span>
-            <span class="text-[11px] text-slate-500">Mở rộng</span>
-          </summary>
-          <div class="mt-3 space-y-2.5 pt-2.5 border-t border-white/10">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <input id="input-google-client-id" type="text" placeholder="Google OAuth Client ID" class="sm:col-span-2 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400" />
-              <button id="btn-yt-oauth" type="button" class="px-3 py-2 rounded-xl bg-red-600/80 hover:bg-red-500 text-white text-xs font-bold">OAuth YouTube</button>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <input id="input-spotify-client-id" type="text" placeholder="Spotify App Client ID" class="sm:col-span-2 bg-[#141c2c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400" />
-              <button id="btn-sp-oauth" type="button" class="px-3 py-2 rounded-xl bg-emerald-600/80 hover:bg-emerald-500 text-white text-xs font-bold">OAuth Spotify</button>
-            </div>
-          </div>
-        </details>
       </div>
     </div>
   </div>
@@ -621,6 +614,7 @@
           spotifyClientId: '',
           ytUser: null,
           ytToken: null,
+          ytUseAccountEmbed: false,
           spUser: null,
           spToken: null
         },
@@ -629,6 +623,7 @@
           protocol: null, // 'bluetooth' | 'tel_handoff' | 'companion_qr'
           deviceName: '',
           battery: null,
+          btFallbackVisible: false,
           pairingPin: String(Math.floor(100000 + Math.random() * 900000))
         },
         youtubeList: JSON.parse(JSON.stringify(DEFAULT_YOUTUBE_LIST)),
@@ -638,7 +633,7 @@
         synthPlaying: false,
         weather: { temp: 30, wind: 11, code: 1, desc: 'Ít mây, nắng nhẹ', loaded: false },
         car: { acLeft: 22, acRight: 23, driveMode: 'Normal', tripKm: 14.8, batteryPct: 84 },
-        phone: { dialNumber: '', calling: false, callName: '', callSeconds: 0 },
+        phone: { dialNumber: '', calling: false, callName: '', callNumber: '', callSeconds: 0, muted: false, speaker: true },
         messages: JSON.parse(JSON.stringify(SAMPLE_MESSAGES)),
         radio: { stationIndex: 0, playing: false }
       };
@@ -654,6 +649,9 @@
           if (p.auth) {
             state.auth.googleClientId = p.auth.googleClientId || '';
             state.auth.spotifyClientId = p.auth.spotifyClientId || '';
+            state.auth.ytUser = p.auth.ytUser || null;
+            state.auth.spUser = p.auth.spUser || null;
+            state.auth.ytUseAccountEmbed = !!p.auth.ytUseAccountEmbed;
           }
         }
       } catch (e) {}
@@ -667,7 +665,10 @@
             savedPlaces: state.savedPlaces,
             auth: {
               googleClientId: state.auth.googleClientId,
-              spotifyClientId: state.auth.spotifyClientId
+              spotifyClientId: state.auth.spotifyClientId,
+              ytUser: state.auth.ytUser,
+              spUser: state.auth.spUser,
+              ytUseAccountEmbed: state.auth.ytUseAccountEmbed
             }
           }));
         } catch (e) {}
@@ -1139,10 +1140,17 @@
       // =========================================================
       // 5. ACCOUNT SYNC (YOUTUBE OAUTH 2.0 & SPOTIFY OAUTH 2.0 PKCE)
       // =========================================================
+      function getCurrentRedirectUri() {
+        const uri = window.location.origin + window.location.pathname;
+        return uri.startsWith('http') ? uri : 'http://127.0.0.1:8080/android_auto_simulator.html';
+      }
+
       function openSyncModal() {
         document.getElementById('modal-sync').classList.remove('hidden');
         document.getElementById('input-google-client-id').value = state.auth.googleClientId || '';
         document.getElementById('input-spotify-client-id').value = state.auth.spotifyClientId || '';
+        const uriEl = document.getElementById('oauth-redirect-uri');
+        if (uriEl) uriEl.textContent = getCurrentRedirectUri();
         updateSyncStatusUI();
       }
 
@@ -1174,6 +1182,10 @@
           spStatus.textContent = 'Chưa đăng nhập OAuth • Hỗ trợ dán Playlist/Album cá nhân';
           spStatus.className = 'text-xs text-slate-400';
           spLogout.classList.add('hidden');
+        }
+        const ytModeBtn = document.getElementById('btn-yt-toggle-mode');
+        if (ytModeBtn) {
+          ytModeBtn.textContent = state.auth.ytUseAccountEmbed ? 'Chế độ: Tài khoản' : 'Chế độ: No-Ads';
         }
       }
 
@@ -1283,24 +1295,41 @@
               state.auth.ytUser = chData.items[0].snippet.title;
             }
           }
+          const personal = [];
           const plRes = await fetch('https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=12', {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (plRes.ok) {
             const plData = await plRes.json();
-            if (plData.items && plData.items.length > 0) {
-              const personal = plData.items.map((item) => ({
+            if (plData.items) {
+              plData.items.forEach((item) => personal.push({
                 type: 'playlist',
                 id: item.id,
-                title: `[Cá nhân] ${item.snippet.title}`,
+                title: `[Playlist] ${item.snippet.title}`,
                 channel: state.auth.ytUser || 'YouTube của tôi'
               }));
-              state.youtubeList = [...personal, ...state.youtubeList.filter((v) => !v.title.startsWith('[Cá nhân]'))];
-              state.youtubeIndex = 0;
-              saveState();
-              updateDashYouTube();
-              showToast(`Đã đồng bộ ${personal.length} playlist YouTube cá nhân!`, 'success');
             }
+          }
+          const likedRes = await fetch('https://www.googleapis.com/youtube/v3/videos?part=snippet&myRating=like&maxResults=12', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (likedRes.ok) {
+            const likedData = await likedRes.json();
+            if (likedData.items) {
+              likedData.items.forEach((item) => personal.push({
+                type: 'video',
+                id: item.id,
+                title: `[Đã thích] ${item.snippet.title}`,
+                channel: item.snippet.channelTitle || 'YouTube'
+              }));
+            }
+          }
+          if (personal.length > 0) {
+            state.youtubeList = [...personal, ...state.youtubeList.filter((v) => !v.title.startsWith('[Playlist]') && !v.title.startsWith('[Đã thích]'))];
+            state.youtubeIndex = 0;
+            saveState();
+            updateDashYouTube();
+            showToast(`Đã đồng bộ ${personal.length} playlist & video YouTube cá nhân!`, 'success');
           }
           updateSyncStatusUI();
         } catch (e) {
@@ -1317,24 +1346,45 @@
             const me = await meRes.json();
             state.auth.spUser = me.display_name || me.id;
           }
+          const personal = [];
           const plRes = await fetch('https://api.spotify.com/v1/me/playlists?limit=15', {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (plRes.ok) {
             const plData = await plRes.json();
-            if (plData.items && plData.items.length > 0) {
-              const personal = plData.items.map((item) => ({
+            if (plData.items) {
+              plData.items.forEach((item) => personal.push({
                 type: 'playlist',
                 id: item.id,
-                title: `[Cá nhân] ${item.name}`,
-                subtitle: `${item.tracks ? item.tracks.total : 0} bài • ${state.auth.spUser || 'Spotify của tôi'}`
+                title: `[Playlist] ${item.name}`,
+                subtitle: `${item.tracks ? item.tracks.total : 0} bài • ${state.auth.spUser || 'Spotify'}`
               }));
-              state.spotifyList = [...personal, ...state.spotifyList.filter((p) => !p.title.startsWith('[Cá nhân]'))];
-              state.spotifyIndex = 0;
-              saveState();
-              updateDashSpotify();
-              showToast(`Đã đồng bộ ${personal.length} playlist Spotify cá nhân!`, 'success');
             }
+          }
+          const trRes = await fetch('https://api.spotify.com/v1/me/tracks?limit=10', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (trRes.ok) {
+            const trData = await trRes.json();
+            if (trData.items) {
+              trData.items.forEach((entry) => {
+                if (entry.track && entry.track.id) {
+                  personal.push({
+                    type: 'track',
+                    id: entry.track.id,
+                    title: `[Đã thích] ${entry.track.name}`,
+                    subtitle: (entry.track.artists || []).map((a) => a.name).join(', ')
+                  });
+                }
+              });
+            }
+          }
+          if (personal.length > 0) {
+            state.spotifyList = [...personal, ...state.spotifyList.filter((p) => !p.title.startsWith('[Playlist]') && !p.title.startsWith('[Đã thích]'))];
+            state.spotifyIndex = 0;
+            saveState();
+            updateDashSpotify();
+            showToast(`Đã đồng bộ ${personal.length} playlist & bài hát Spotify cá nhân!`, 'success');
           }
           updateSyncStatusUI();
         } catch (e) {
@@ -1345,33 +1395,66 @@
       // =========================================================
       // 6. PHONE CONNECTION PROTOCOLS (BLUETOOTH / TEL HANDOFF / COMPANION)
       // =========================================================
+      function copyTextSafe(text, label) {
+        const fallback = () => {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); showToast(`Đã sao chép link ${label}! Hãy dán vào tab mới trình duyệt.`, 'success'); }
+          catch (e) { showToast(`Link ${label}: ${text}`, 'info'); }
+          ta.remove();
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text)
+            .then(() => showToast(`Đã sao chép link ${label}! Hãy dán vào tab mới trình duyệt.`, 'success'))
+            .catch(fallback);
+        } else {
+          fallback();
+        }
+      }
+
+      function openExternalLogin(url, label) {
+        try {
+          const win = window.open(url, '_blank', 'noopener,noreferrer');
+          if (!win) {
+            copyTextSafe(url, label);
+            showToast(`Trình duyệt chặn cửa sổ bật lên. Đã sao chép link ${label} để bạn dán vào tab mới!`, 'warn');
+          } else {
+            showToast(`Đã mở trang đăng nhập ${label} ở tab mới. Đăng nhập xong hãy quay lại bấm Xác nhận.`, 'info');
+          }
+        } catch (e) {
+          copyTextSafe(url, label);
+        }
+      }
+
       function updatePhoneConnectionUI() {
         const headerBtn = document.getElementById('btn-header-phone-status');
         const headerLabel = document.getElementById('header-phone-label');
-        const headerBt = document.getElementById('header-bt-icon');
-        const railBt = document.getElementById('rail-bt-icon');
+        const headerSlot = document.getElementById('header-bt-slot');
+        const railSlot = document.getElementById('rail-bt-slot');
 
         if (state.phoneConn.connected) {
-          headerBtn.className = 'flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-teal-600/25 hover:bg-teal-600/40 text-teal-200 border border-teal-400/35 transition';
-          headerLabel.textContent = state.phoneConn.deviceName;
-          headerBt.setAttribute('data-lucide', 'bluetooth-connected');
-          headerBt.className = 'w-3.5 h-3.5 text-teal-300';
-          railBt.setAttribute('data-lucide', 'bluetooth-connected');
-          railBt.className = 'w-3 h-3 text-teal-400';
+          if (headerBtn) headerBtn.className = 'flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-teal-600/25 hover:bg-teal-600/40 text-teal-200 border border-teal-400/35 transition';
+          if (headerLabel) headerLabel.textContent = state.phoneConn.deviceName;
+          if (headerSlot) headerSlot.innerHTML = '<i data-lucide="bluetooth-connected" class="w-3.5 h-3.5 text-teal-300"></i>';
+          if (railSlot) railSlot.innerHTML = '<i data-lucide="bluetooth-connected" class="w-3 h-3 text-teal-400"></i>';
         } else {
-          headerBtn.className = 'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10 transition';
-          headerLabel.textContent = 'Chưa kết nối ĐT';
-          headerBt.setAttribute('data-lucide', 'bluetooth-off');
-          headerBt.className = 'w-3.5 h-3.5 text-amber-400';
-          railBt.setAttribute('data-lucide', 'bluetooth-off');
-          railBt.className = 'w-3 h-3 text-slate-500';
+          if (headerBtn) headerBtn.className = 'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10 transition';
+          if (headerLabel) headerLabel.textContent = 'Chưa kết nối ĐT';
+          if (headerSlot) headerSlot.innerHTML = '<i data-lucide="bluetooth-off" class="w-3.5 h-3.5 text-amber-400"></i>';
+          if (railSlot) railSlot.innerHTML = '<i data-lucide="bluetooth-off" class="w-3 h-3 text-slate-500"></i>';
         }
         lucide.createIcons();
       }
 
       async function connectViaWebBluetooth() {
         if (!('bluetooth' in navigator)) {
-          showToast('Trình duyệt hiện tại chưa bật Web Bluetooth API (hỗ trợ tốt trên Chrome/Edge HTTPS). Hãy dùng giao thức Liên kết hệ thống (tel:) hoặc Ghép nối Mã PIN.', 'warn');
+          state.phoneConn.btFallbackVisible = true;
+          if (state.activeView === 'phone') renderActiveAppView();
+          showToast('Trình duyệt này giới hạn quét BLE. Bạn có thể xác nhận ghép nối Bluetooth HFP hệ thống ngay bên dưới.', 'warn');
           return;
         }
         try {
@@ -1393,6 +1476,7 @@
           state.phoneConn.protocol = 'bluetooth';
           state.phoneConn.deviceName = device.name || 'Điện thoại Bluetooth';
           state.phoneConn.battery = battery;
+          state.phoneConn.btFallbackVisible = false;
 
           device.addEventListener('gattserverdisconnected', () => {
             disconnectPhone();
@@ -1403,8 +1487,22 @@
           if (state.activeView === 'phone') renderActiveAppView();
           showToast(`Đã kết nối Bluetooth với ${state.phoneConn.deviceName}! Tính năng gọi đã mở khóa.`, 'success');
         } catch (e) {
-          showToast('Đã hủy ghép nối Bluetooth hoặc thiết bị không cho phép truy cập.', 'warn');
+          state.phoneConn.btFallbackVisible = true;
+          if (state.activeView === 'phone') renderActiveAppView();
+          showToast('Trình duyệt không cho phép quét BLE trực tiếp tại đây. Hãy bấm "Xác nhận Bluetooth HFP của xe" bên dưới.', 'warn');
         }
+      }
+
+      function confirmSystemBluetoothHFP(deviceName) {
+        state.phoneConn.connected = true;
+        state.phoneConn.protocol = 'bluetooth';
+        state.phoneConn.deviceName = (deviceName || '').trim() || 'Bluetooth HFP (Hệ thống xe)';
+        state.phoneConn.battery = 92;
+        state.phoneConn.btFallbackVisible = false;
+        updatePhoneConnectionUI();
+        renderDashboardWidgets();
+        if (state.activeView === 'phone') renderActiveAppView();
+        showToast(`Đã kích hoạt kết nối Bluetooth HFP: ${state.phoneConn.deviceName}!`, 'success');
       }
 
       function connectViaTelProtocol() {
@@ -1459,7 +1557,29 @@
         }
         state.phone.calling = true;
         state.phone.callName = displayName;
+        state.phone.callNumber = cleanNum;
         state.phone.callSeconds = 0;
+        state.phone.muted = false;
+        try {
+          if ('BroadcastChannel' in window) {
+            const bc = new BroadcastChannel('aa_phone_link');
+            bc.postMessage({ type: 'DIAL', number: cleanNum, name: displayName, pin: state.phoneConn.pairingPin });
+            bc.close();
+          }
+        } catch (e) {}
+        try {
+          const ctx = ensureAudioCtx();
+          if (ctx) {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            g.gain.setValueAtTime(0.03, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+            osc.connect(g); g.connect(ctx.destination);
+            osc.start(); osc.stop(ctx.currentTime + 0.55);
+          }
+        } catch (e) {}
         if (callInterval) clearInterval(callInterval);
         callInterval = setInterval(() => {
           state.phone.callSeconds++;
@@ -1484,11 +1604,12 @@
       // 7. YOUTUBE, SPOTIFY & AUDIO CONTROLLERS
       // =========================================================
       function getYouTubeEmbedUrl(item, autoplay = false) {
+        const host = state.auth.ytUseAccountEmbed ? 'https://www.youtube.com' : 'https://www.youtube-nocookie.com';
         const auto = autoplay ? '&autoplay=1' : '';
         if (item.type === 'playlist') {
-          return `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(item.id)}&rel=0&modestbranding=1${auto}`;
+          return `${host}/embed/videoseries?list=${encodeURIComponent(item.id)}&rel=0&modestbranding=1${auto}`;
         }
-        return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(item.id)}?rel=0&modestbranding=1&iv_load_policy=3${auto}`;
+        return `${host}/embed/${encodeURIComponent(item.id)}?rel=0&modestbranding=1&iv_load_policy=3${auto}`;
       }
 
       function updateDashYouTube() {
@@ -1715,12 +1836,12 @@
         const viewDash = document.getElementById('view-dashboard');
         const viewApp = document.getElementById('view-app');
         const badge = document.getElementById('header-view-badge');
-        const homeIcon = document.getElementById('home-toggle-icon');
+        const homeSlot = document.getElementById('home-toggle-slot');
         const mapsEnabled = state.features.some((f) => f.id === 'maps' && f.enabled);
 
         if (state.activeView === 'dashboard') {
           badge.textContent = 'Coolwalk Chia đôi';
-          homeIcon.setAttribute('data-lucide', 'layout-grid');
+          if (homeSlot) homeSlot.innerHTML = '<i data-lucide="layout-grid" class="w-5 h-5"></i>';
           viewDash.classList.remove('hidden');
           viewApp.classList.add('hidden');
           if (!mapsEnabled) {
@@ -1739,7 +1860,7 @@
         } else {
           const feat = state.features.find((f) => f.id === state.activeView);
           badge.textContent = state.activeView === 'launcher' ? 'Kho ứng dụng' : (feat ? feat.name : 'Ứng dụng');
-          homeIcon.setAttribute('data-lucide', 'home');
+          if (homeSlot) homeSlot.innerHTML = '<i data-lucide="home" class="w-5 h-5"></i>';
           viewDash.classList.add('hidden');
           viewApp.classList.remove('hidden');
           if (mapsEnabled) {
@@ -1972,12 +2093,26 @@
                   <div class="text-xl font-bold text-white">${escapeHtml(state.phone.callName)}</div>
                   <div id="phone-call-timer" class="text-sm text-emerald-400 font-semibold mt-1 tabular-nums">Đang gọi qua ${escapeHtml(state.phoneConn.deviceName)} • ${mm}:${ss}</div>
                 </div>
-                <button id="phone-hangup" type="button" class="px-6 py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm flex items-center gap-2 shadow-lg">
-                  <i data-lucide="phone-off" class="w-4 h-4"></i><span>Kết thúc cuộc gọi</span>
-                </button>
+                <div class="flex flex-wrap items-center justify-center gap-2">
+                  <button id="phone-mute-btn" type="button" class="px-4 py-2.5 rounded-2xl ${state.phone.muted ? 'bg-amber-500 text-slate-950' : 'bg-white/10 text-white'} font-semibold text-xs flex items-center gap-1.5">
+                    <i data-lucide="${state.phone.muted ? 'mic-off' : 'mic'}" class="w-4 h-4"></i><span>${state.phone.muted ? 'Đang tắt mic' : 'Tắt mic'}</span>
+                  </button>
+                  ${state.phone.callNumber ? `
+                    <a href="tel:${escapeHtml(state.phone.callNumber)}" target="_top" class="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1.5">
+                      <i data-lucide="smartphone" class="w-4 h-4"></i><span>Gọi qua app ĐT (tel:)</span>
+                    </a>
+                  ` : ''}
+                  <button id="phone-hangup" type="button" class="px-5 py-2.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg">
+                    <i data-lucide="phone-off" class="w-4 h-4"></i><span>Kết thúc</span>
+                  </button>
+                </div>
               </div>
             `;
             document.getElementById('phone-hangup').addEventListener('click', endSimulatedCall);
+            document.getElementById('phone-mute-btn').addEventListener('click', () => {
+              state.phone.muted = !state.phone.muted;
+              renderActiveAppView();
+            });
             lucide.createIcons();
             return;
           }
@@ -2019,7 +2154,12 @@
                       <div class="text-xs font-bold text-blue-300 flex items-center gap-1.5"><i data-lucide="bluetooth" class="w-4 h-4"></i> 1. Web Bluetooth</div>
                       <p class="text-[11px] text-slate-400 mt-1">Quét & ghép nối thiết bị Bluetooth trực tiếp qua trình duyệt Chrome/Edge. (Âm thanh thoại HFP do Bluetooth của xe xử lý).</p>
                     </div>
-                    <button id="btn-conn-bt" type="button" class="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold">Quét Bluetooth</button>
+                    <div class="space-y-1.5">
+                      <button id="btn-conn-bt" type="button" class="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold">Quét Bluetooth</button>
+                      ${state.phoneConn.btFallbackVisible ? `
+                        <button id="btn-conn-bt-hfp" type="button" class="w-full py-1.5 rounded-xl bg-blue-500/20 hover:bg-blue-500/35 border border-blue-400/40 text-blue-200 text-[11px] font-semibold">Xác nhận Bluetooth HFP của xe</button>
+                      ` : ''}
+                    </div>
                   </div>
 
                   <!-- Protocol 2: System tel: Handoff -->
@@ -2092,6 +2232,8 @@
 
           const btBtn = document.getElementById('btn-conn-bt');
           if (btBtn) btBtn.addEventListener('click', connectViaWebBluetooth);
+          const btHfpBtn = document.getElementById('btn-conn-bt-hfp');
+          if (btHfpBtn) btHfpBtn.addEventListener('click', () => confirmSystemBluetoothHFP('Bluetooth HFP của xe'));
           const telBtn = document.getElementById('btn-conn-tel');
           if (telBtn) telBtn.addEventListener('click', connectViaTelProtocol);
           const pinBtn = document.getElementById('btn-conn-pin');
@@ -2434,10 +2576,22 @@
         document.getElementById('btn-yt-oauth').addEventListener('click', startYouTubeOAuth);
         document.getElementById('btn-sp-oauth').addEventListener('click', startSpotifyOAuth);
         document.getElementById('btn-yt-logout').addEventListener('click', () => {
-          state.auth.ytUser = null; state.auth.ytToken = null; updateSyncStatusUI(); showToast('Đã đăng xuất YouTube.', 'info');
+          state.auth.ytUser = null; state.auth.ytToken = null; state.auth.ytUseAccountEmbed = false; saveState(); updateSyncStatusUI(); updateDashYouTube(); showToast('Đã đăng xuất YouTube.', 'info');
         });
         document.getElementById('btn-sp-logout').addEventListener('click', () => {
-          state.auth.spUser = null; state.auth.spToken = null; updateSyncStatusUI(); showToast('Đã đăng xuất Spotify.', 'info');
+          state.auth.spUser = null; state.auth.spToken = null; saveState(); updateSyncStatusUI(); showToast('Đã đăng xuất Spotify.', 'info');
+        });
+
+        document.getElementById('btn-copy-redirect-uri').addEventListener('click', () => {
+          copyTextSafe(getCurrentRedirectUri(), 'Redirect URI');
+        });
+        document.getElementById('btn-yt-toggle-mode').addEventListener('click', () => {
+          state.auth.ytUseAccountEmbed = !state.auth.ytUseAccountEmbed;
+          saveState();
+          updateSyncStatusUI();
+          updateDashYouTube();
+          if (state.activeView === 'youtube') renderActiveAppView();
+          showToast(state.auth.ytUseAccountEmbed ? 'Đã chuyển sang chế độ dùng tài khoản trình duyệt (youtube.com).' : 'Đã chuyển sang chế độ không quảng cáo (youtube-nocookie).', 'info');
         });
 
         document.getElementById('btn-sp-reload').addEventListener('click', () => {
